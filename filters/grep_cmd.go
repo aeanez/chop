@@ -115,5 +115,6 @@ func filterGrep(raw string) (string, error) {
 
 	out = append(out, fmt.Sprintf("%d matches across %d files", totalMatches, totalFiles))
 
-	return strings.Join(out, "\n"), nil
+	result := strings.Join(out, "\n")
+	return outputSanityCheck(raw, result), nil
 }

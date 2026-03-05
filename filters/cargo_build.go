@@ -28,11 +28,15 @@ var (
 )
 
 func filterCargoBuild(raw string) (string, error) {
-	raw = strings.TrimSpace(raw)
-	if raw == "" {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
 		return "", nil
 	}
+	if !looksLikeCargoBuildOutput(trimmed) {
+		return raw, nil
+	}
 
+	raw = trimmed
 	lines := strings.Split(raw, "\n")
 
 	type diagnostic struct {
@@ -203,5 +207,6 @@ func filterCargoBuild(raw string) (string, error) {
 	out = append(out, "")
 	out = append(out, fmt.Sprintf("%d error(s), %d warning(s)", errorCount, warnCount))
 
-	return strings.Join(out, "\n"), nil
+	result := strings.Join(out, "\n")
+	return outputSanityCheck(raw, result), nil
 }

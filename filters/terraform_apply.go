@@ -23,11 +23,15 @@ var (
 )
 
 func filterTerraformApply(raw string) (string, error) {
-	raw = strings.TrimSpace(raw)
-	if raw == "" {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
 		return "", nil
 	}
+	if !looksLikeTerraformApplyOutput(trimmed) {
+		return raw, nil
+	}
 
+	raw = trimmed
 	lines := strings.Split(raw, "\n")
 
 	var (
@@ -114,7 +118,8 @@ func filterTerraformApply(raw string) (string, error) {
 		return raw, nil
 	}
 
-	return strings.Join(out, "\n"), nil
+	result := strings.Join(out, "\n")
+	return outputSanityCheck(raw, result), nil
 }
 
 func mapTfApplyAction(completion string) string {

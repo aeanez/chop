@@ -24,11 +24,15 @@ var (
 )
 
 func filterCargoTestCmd(raw string) (string, error) {
-	raw = strings.TrimSpace(raw)
-	if raw == "" {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
 		return "", nil
 	}
+	if !looksLikeCargoTestOutput(trimmed) {
+		return raw, nil
+	}
 
+	raw = trimmed
 	lines := strings.Split(raw, "\n")
 
 	var (
@@ -153,5 +157,6 @@ func filterCargoTestCmd(raw string) (string, error) {
 		out.WriteString(" (includes doc-test failures)")
 	}
 
-	return strings.TrimSpace(out.String()), nil
+	result := strings.TrimSpace(out.String())
+	return outputSanityCheck(raw, result), nil
 }

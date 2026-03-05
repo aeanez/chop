@@ -7,19 +7,23 @@ import (
 )
 
 func filterKubectlLogs(raw string) (string, error) {
-	raw = strings.TrimSpace(raw)
-	if raw == "" {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
 		return "", nil
 	}
 
+	raw = trimmed
 	lines := strings.Split(raw, "\n")
 
+	var result string
 	// Detect if structured JSON logs
 	if isJSONLogs(lines) {
-		return filterJSONLogs(lines), nil
+		result = filterJSONLogs(lines)
+	} else {
+		result = filterTextLogs(lines)
 	}
 
-	return filterTextLogs(lines), nil
+	return outputSanityCheck(raw, result), nil
 }
 
 func isJSONLogs(lines []string) bool {

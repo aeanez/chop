@@ -32,11 +32,15 @@ var describeStripKeys = []string{
 }
 
 func filterKubectlDescribe(raw string) (string, error) {
-	raw = strings.TrimSpace(raw)
-	if raw == "" {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
 		return "", nil
 	}
+	if !looksLikeKubectlDescribeOutput(trimmed) {
+		return raw, nil
+	}
 
+	raw = trimmed
 	var out []string
 	lines := strings.Split(raw, "\n")
 
@@ -170,5 +174,6 @@ func filterKubectlDescribe(raw string) (string, error) {
 		}
 	}
 
-	return strings.Join(out, "\n"), nil
+	result := strings.Join(out, "\n")
+	return outputSanityCheck(raw, result), nil
 }

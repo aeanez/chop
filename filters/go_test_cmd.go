@@ -30,11 +30,15 @@ var (
 )
 
 func filterGoTestCmd(raw string) (string, error) {
-	raw = strings.TrimSpace(raw)
-	if raw == "" {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
 		return "", nil
 	}
+	if !looksLikeGoTestOutput(trimmed) {
+		return raw, nil
+	}
 
+	raw = trimmed
 	lines := strings.Split(raw, "\n")
 
 	var (
@@ -174,5 +178,6 @@ func filterGoTestCmd(raw string) (string, error) {
 	}
 	fmt.Fprint(&out, strings.Join(parts, ", "))
 
-	return strings.TrimSpace(out.String()), nil
+	result := strings.TrimSpace(out.String())
+	return outputSanityCheck(raw, result), nil
 }

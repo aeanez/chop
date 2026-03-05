@@ -75,11 +75,15 @@ func getMavenFilter(args []string) FilterFunc {
 }
 
 func filterMavenBuild(raw string) (string, error) {
-	raw = strings.TrimSpace(raw)
-	if raw == "" {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
 		return "", nil
 	}
+	if !looksLikeMavenOutput(trimmed) {
+		return raw, nil
+	}
 
+	raw = trimmed
 	lines := strings.Split(raw, "\n")
 
 	var (
@@ -166,15 +170,20 @@ func filterMavenBuild(raw string) (string, error) {
 		}
 	}
 
-	return strings.Join(out, "\n"), nil
+	output := strings.Join(out, "\n")
+	return outputSanityCheck(raw, output), nil
 }
 
 func filterMavenTest(raw string) (string, error) {
-	raw = strings.TrimSpace(raw)
-	if raw == "" {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
 		return "", nil
 	}
+	if !looksLikeMavenOutput(trimmed) {
+		return raw, nil
+	}
 
+	raw = trimmed
 	lines := strings.Split(raw, "\n")
 
 	var (
@@ -278,15 +287,20 @@ func filterMavenTest(raw string) (string, error) {
 	out = append(out, fmt.Sprintf("Tests run: %d, Failures: %d, Errors: %d, Skipped: %d",
 		totalRun, totalFail, totalErr, totalSkip))
 
-	return strings.Join(out, "\n"), nil
+	result := strings.Join(out, "\n")
+	return outputSanityCheck(raw, result), nil
 }
 
 func filterMavenDepTree(raw string) (string, error) {
-	raw = strings.TrimSpace(raw)
-	if raw == "" {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
 		return "", nil
 	}
+	if !looksLikeMavenOutput(trimmed) {
+		return raw, nil
+	}
 
+	raw = trimmed
 	lines := strings.Split(raw, "\n")
 
 	var (
@@ -324,5 +338,6 @@ func filterMavenDepTree(raw string) (string, error) {
 	out = append(out, "")
 	out = append(out, fmt.Sprintf("%d direct, %d transitive dependencies", len(directDeps), transitiveCount))
 
-	return strings.Join(out, "\n"), nil
+	result := strings.Join(out, "\n")
+	return outputSanityCheck(raw, result), nil
 }

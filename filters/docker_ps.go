@@ -6,11 +6,15 @@ import (
 )
 
 func filterDockerPs(raw string) (string, error) {
-	raw = strings.TrimSpace(raw)
-	if raw == "" {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
 		return "no running containers", nil
 	}
+	if !looksLikeDockerPsOutput(trimmed) {
+		return raw, nil
+	}
 
+	raw = trimmed
 	lines := strings.Split(raw, "\n")
 	if len(lines) == 0 {
 		return "no running containers", nil
@@ -69,7 +73,8 @@ func filterDockerPs(raw string) (string, error) {
 		return "no running containers", nil
 	}
 
-	return strings.Join(out, "\n"), nil
+	result := strings.Join(out, "\n")
+	return outputSanityCheck(raw, result), nil
 }
 
 // extractColumn extracts text from a fixed-width table line between start and end positions.

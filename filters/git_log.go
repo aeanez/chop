@@ -10,6 +10,9 @@ func filterGitLog(raw string) (string, error) {
 	if trimmed == "" {
 		return "", nil
 	}
+	if !looksLikeGitLogOutput(trimmed) {
+		return raw, nil
+	}
 
 	lines := strings.Split(trimmed, "\n")
 
@@ -102,5 +105,6 @@ func filterGitLog(raw string) (string, error) {
 		fmt.Fprintf(&out, "(%d more)\n", total-maxEntries)
 	}
 
-	return strings.TrimSpace(out.String()), nil
+	result := strings.TrimSpace(out.String())
+	return outputSanityCheck(raw, result), nil
 }

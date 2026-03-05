@@ -23,6 +23,14 @@ var (
 )
 
 func filterNpmTestCmd(raw string) (string, error) {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return raw, nil
+	}
+	if !looksLikeNpmTestOutput(trimmed) {
+		return raw, nil
+	}
+
 	lines := strings.Split(raw, "\n")
 
 	var failures []string
@@ -148,5 +156,5 @@ func filterNpmTestCmd(raw string) (string, error) {
 	if result == "" {
 		return raw, nil
 	}
-	return result, nil
+	return outputSanityCheck(raw, result), nil
 }

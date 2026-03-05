@@ -21,11 +21,15 @@ var (
 )
 
 func filterDotnetBuild(raw string) (string, error) {
-	raw = strings.TrimSpace(raw)
-	if raw == "" {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
 		return "", nil
 	}
+	if !looksLikeDotnetBuildOutput(trimmed) {
+		return raw, nil
+	}
 
+	raw = trimmed
 	lines := strings.Split(raw, "\n")
 
 	var (
@@ -139,5 +143,6 @@ func filterDotnetBuild(raw string) (string, error) {
 		out = append(out, fmt.Sprintf("%d error(s), %d warning(s)", len(errors), len(warnings)))
 	}
 
-	return strings.Join(out, "\n"), nil
+	output := strings.Join(out, "\n")
+	return outputSanityCheck(raw, output), nil
 }

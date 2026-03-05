@@ -25,11 +25,15 @@ var (
 )
 
 func filterEslint(raw string) (string, error) {
-	raw = strings.TrimSpace(raw)
-	if raw == "" {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
 		return "no problems", nil
 	}
+	if !looksLikeEslintOutput(trimmed) {
+		return raw, nil
+	}
 
+	raw = trimmed
 	lines := strings.Split(raw, "\n")
 
 	type eslintProblem struct {
@@ -134,5 +138,6 @@ func filterEslint(raw string) (string, error) {
 		out = append(out, fixableMsg)
 	}
 
-	return strings.Join(out, "\n"), nil
+	result := strings.Join(out, "\n")
+	return outputSanityCheck(raw, result), nil
 }

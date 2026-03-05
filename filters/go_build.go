@@ -16,11 +16,15 @@ var (
 )
 
 func filterGoBuild(raw string) (string, error) {
-	raw = strings.TrimSpace(raw)
-	if raw == "" {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
 		return "build ok", nil
 	}
+	if !looksLikeGoBuildOutput(trimmed) {
+		return raw, nil
+	}
 
+	raw = trimmed
 	lines := strings.Split(raw, "\n")
 
 	type buildError struct {
@@ -87,5 +91,6 @@ func filterGoBuild(raw string) (string, error) {
 	}
 	out = append(out, fmt.Sprintf("\n%d error(s)", len(errors)))
 
-	return strings.Join(out, "\n"), nil
+	result := strings.Join(out, "\n")
+	return outputSanityCheck(raw, result), nil
 }

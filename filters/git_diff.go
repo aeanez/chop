@@ -10,6 +10,9 @@ func filterGitDiff(raw string) (string, error) {
 	if trimmed == "" {
 		return "", nil
 	}
+	if !looksLikeGitDiffOutput(trimmed) {
+		return raw, nil
+	}
 
 	lines := strings.Split(trimmed, "\n")
 
@@ -67,5 +70,6 @@ func filterGitDiff(raw string) (string, error) {
 	}
 	fmt.Fprintf(&out, "%d files changed, +%d -%d", len(stats), totalAdded, totalRemoved)
 
-	return out.String(), nil
+	result := out.String()
+	return outputSanityCheck(raw, result), nil
 }

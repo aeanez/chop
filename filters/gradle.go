@@ -68,11 +68,15 @@ func getGradleFilter(args []string) FilterFunc {
 }
 
 func filterGradleBuild(raw string) (string, error) {
-	raw = strings.TrimSpace(raw)
-	if raw == "" {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
 		return "", nil
 	}
+	if !looksLikeGradleOutput(trimmed) {
+		return raw, nil
+	}
 
+	raw = trimmed
 	lines := strings.Split(raw, "\n")
 
 	var (
@@ -214,15 +218,20 @@ func filterGradleBuild(raw string) (string, error) {
 		}
 	}
 
-	return strings.Join(out, "\n"), nil
+	output := strings.Join(out, "\n")
+	return outputSanityCheck(raw, output), nil
 }
 
 func filterGradleTest(raw string) (string, error) {
-	raw = strings.TrimSpace(raw)
-	if raw == "" {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
 		return "", nil
 	}
+	if !looksLikeGradleOutput(trimmed) {
+		return raw, nil
+	}
 
+	raw = trimmed
 	lines := strings.Split(raw, "\n")
 
 	var (
@@ -320,15 +329,20 @@ func filterGradleTest(raw string) (string, error) {
 	}
 	out = append(out, strings.Join(parts, ", "))
 
-	return strings.Join(out, "\n"), nil
+	result := strings.Join(out, "\n")
+	return outputSanityCheck(raw, result), nil
 }
 
 func filterGradleDeps(raw string) (string, error) {
-	raw = strings.TrimSpace(raw)
-	if raw == "" {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
 		return "", nil
 	}
+	if !looksLikeGradleOutput(trimmed) {
+		return raw, nil
+	}
 
+	raw = trimmed
 	lines := strings.Split(raw, "\n")
 
 	var (
@@ -369,7 +383,8 @@ func filterGradleDeps(raw string) (string, error) {
 	out = append(out, "")
 	out = append(out, fmt.Sprintf("%d direct, %d transitive dependencies", len(directDeps), transitiveCount))
 
-	return strings.Join(out, "\n"), nil
+	result := strings.Join(out, "\n")
+	return outputSanityCheck(raw, result), nil
 }
 
 func cleanGradleDep(dep string) string {

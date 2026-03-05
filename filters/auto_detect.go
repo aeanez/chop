@@ -32,33 +32,33 @@ func filterAutoDetect(raw string) (string, error) {
 	if len(trimmed) > 0 && (trimmed[0] == '{' || trimmed[0] == '[') {
 		result, err := compressJSON(trimmed)
 		if err == nil {
-			return result, nil
+			return outputSanityCheck(raw, result), nil
 		}
 		// Not valid JSON, fall through
 	}
 
 	// XML/HTML detection
 	if len(trimmed) > 0 && trimmed[0] == '<' && looksLikeMarkup(trimmed) {
-		return compressMarkup(trimmed, lines), nil
+		return outputSanityCheck(raw, compressMarkup(trimmed, lines)), nil
 	}
 
 	// CSV/TSV detection
 	if looksLikeCSV(lines) {
-		return compressCSV(lines), nil
+		return outputSanityCheck(raw, compressCSV(lines)), nil
 	}
 
 	// Table detection
 	if looksLikeTable(lines) {
-		return compressTable(lines), nil
+		return outputSanityCheck(raw, compressTable(lines)), nil
 	}
 
 	// Log-like detection
 	if looksLikeLog(lines) {
-		return compressLog(lines), nil
+		return outputSanityCheck(raw, compressLog(lines)), nil
 	}
 
 	// Plain text fallback
-	return compressPlainText(lines), nil
+	return outputSanityCheck(raw, compressPlainText(lines)), nil
 }
 
 // --- CSV/TSV detection and compression ---

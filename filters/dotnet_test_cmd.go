@@ -26,11 +26,15 @@ var (
 )
 
 func filterDotnetTestCmd(raw string) (string, error) {
-	raw = strings.TrimSpace(raw)
-	if raw == "" {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
 		return "", nil
 	}
+	if !looksLikeDotnetTestOutput(trimmed) {
+		return raw, nil
+	}
 
+	raw = trimmed
 	lines := strings.Split(raw, "\n")
 
 	var (
@@ -160,5 +164,5 @@ func filterDotnetTestCmd(raw string) (string, error) {
 	if result == "" {
 		return raw, nil
 	}
-	return result, nil
+	return outputSanityCheck(raw, result), nil
 }

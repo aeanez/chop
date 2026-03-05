@@ -24,6 +24,9 @@ func filterGhRunList(raw string) (string, error) {
 	if raw == "" {
 		return "no workflow runs", nil
 	}
+	if !looksLikeGhRunOutput(raw) {
+		return raw, nil
+	}
 
 	lines := strings.Split(raw, "\n")
 	var out []string
@@ -63,13 +66,17 @@ func filterGhRunList(raw string) (string, error) {
 		}
 	}
 
-	return strings.Join(out, "\n"), nil
+	result := strings.Join(out, "\n")
+	return outputSanityCheck(raw, result), nil
 }
 
 func filterGhRunView(raw string) (string, error) {
 	raw = stripAnsi(strings.TrimSpace(raw))
 	if raw == "" {
 		return "no run data", nil
+	}
+	if !looksLikeGhRunOutput(raw) {
+		return raw, nil
 	}
 
 	lines := strings.Split(raw, "\n")
@@ -123,5 +130,6 @@ func filterGhRunView(raw string) (string, error) {
 	if len(out) == 0 {
 		return raw, nil
 	}
-	return strings.Join(out, "\n"), nil
+	result := strings.Join(out, "\n")
+	return outputSanityCheck(raw, result), nil
 }

@@ -24,6 +24,9 @@ func filterGhIssueList(raw string) (string, error) {
 	if raw == "" {
 		return "no issues", nil
 	}
+	if !looksLikeGhIssueOutput(raw) {
+		return raw, nil
+	}
 
 	lines := strings.Split(raw, "\n")
 	var out []string
@@ -51,13 +54,17 @@ func filterGhIssueList(raw string) (string, error) {
 		}
 	}
 
-	return strings.Join(out, "\n"), nil
+	result := strings.Join(out, "\n")
+	return outputSanityCheck(raw, result), nil
 }
 
 func filterGhIssueView(raw string) (string, error) {
 	raw = stripAnsi(strings.TrimSpace(raw))
 	if raw == "" {
 		return "no issue data", nil
+	}
+	if !looksLikeGhIssueOutput(raw) {
+		return raw, nil
 	}
 
 	lines := strings.Split(raw, "\n")
@@ -133,5 +140,6 @@ func filterGhIssueView(raw string) (string, error) {
 	if len(out) == 0 {
 		return raw, nil
 	}
-	return strings.Join(out, "\n"), nil
+	result := strings.Join(out, "\n")
+	return outputSanityCheck(raw, result), nil
 }

@@ -36,6 +36,9 @@ func filterGhPrList(raw string) (string, error) {
 	if raw == "" {
 		return "no pull requests", nil
 	}
+	if !looksLikeGhPrOutput(raw) {
+		return raw, nil
+	}
 
 	lines := strings.Split(raw, "\n")
 	var out []string
@@ -63,13 +66,17 @@ func filterGhPrList(raw string) (string, error) {
 		}
 	}
 
-	return strings.Join(out, "\n"), nil
+	result := strings.Join(out, "\n")
+	return outputSanityCheck(raw, result), nil
 }
 
 func filterGhPrView(raw string) (string, error) {
 	raw = stripAnsi(strings.TrimSpace(raw))
 	if raw == "" {
 		return "no PR data", nil
+	}
+	if !looksLikeGhPrOutput(raw) {
+		return raw, nil
 	}
 
 	lines := strings.Split(raw, "\n")
@@ -179,7 +186,8 @@ func filterGhPrView(raw string) (string, error) {
 	if len(out) == 0 {
 		return raw, nil
 	}
-	return strings.Join(out, "\n"), nil
+	result := strings.Join(out, "\n")
+	return outputSanityCheck(raw, result), nil
 }
 
 func filterGhPrChecks(raw string) (string, error) {
@@ -236,5 +244,6 @@ func filterGhPrChecks(raw string) (string, error) {
 	summary := fmt.Sprintf("%d passed, %d failed, %d pending", passed, failed, pending)
 	out = append(out, summary)
 
-	return strings.Join(out, "\n"), nil
+	result := strings.Join(out, "\n")
+	return outputSanityCheck(raw, result), nil
 }

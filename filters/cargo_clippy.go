@@ -35,11 +35,15 @@ type clippyDiag struct {
 }
 
 func filterCargoClippy(raw string) (string, error) {
-	raw = strings.TrimSpace(raw)
-	if raw == "" {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
 		return "", nil
 	}
+	if !looksLikeCargoClippyOutput(trimmed) {
+		return raw, nil
+	}
 
+	raw = trimmed
 	lines := strings.Split(raw, "\n")
 
 	var (
@@ -216,5 +220,6 @@ func filterCargoClippy(raw string) (string, error) {
 	// Summary
 	out = append(out, fmt.Sprintf("%d warning(s), %d error(s)", ungrouped, len(errors)))
 
-	return strings.Join(out, "\n"), nil
+	result := strings.Join(out, "\n")
+	return outputSanityCheck(raw, result), nil
 }

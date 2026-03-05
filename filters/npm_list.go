@@ -11,7 +11,15 @@ var reTopLevelDep = regexp.MustCompile(`^[+`+"`"+`|\\]+--\s+(.+@\S+)`)
 var reDirectDep = regexp.MustCompile(`^[+`+"`"+`]--\s+(.+@\S+)`)
 
 func filterNpmList(raw string) (string, error) {
-	lines := strings.Split(strings.TrimSpace(raw), "\n")
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return raw, nil
+	}
+	if !looksLikeNpmListOutput(trimmed) {
+		return raw, nil
+	}
+
+	lines := strings.Split(trimmed, "\n")
 	if len(lines) == 0 {
 		return raw, nil
 	}
@@ -61,5 +69,6 @@ func filterNpmList(raw string) (string, error) {
 		fmt.Fprintf(&out, "\n%d packages", len(topLevel))
 	}
 
-	return strings.TrimSpace(out.String()), nil
+	result := strings.TrimSpace(out.String())
+	return outputSanityCheck(raw, result), nil
 }

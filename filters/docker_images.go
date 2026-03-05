@@ -6,11 +6,15 @@ import (
 )
 
 func filterDockerImages(raw string) (string, error) {
-	raw = strings.TrimSpace(raw)
-	if raw == "" {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
 		return "", nil
 	}
+	if !looksLikeDockerImagesOutput(trimmed) {
+		return raw, nil
+	}
 
+	raw = trimmed
 	lines := strings.Split(raw, "\n")
 	if len(lines) == 0 {
 		return "", nil
@@ -65,5 +69,6 @@ func filterDockerImages(raw string) (string, error) {
 	}
 
 	result = append(result, fmt.Sprintf("%d images total", total))
-	return strings.Join(result, "\n"), nil
+	out := strings.Join(result, "\n")
+	return outputSanityCheck(raw, out), nil
 }

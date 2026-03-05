@@ -18,6 +18,14 @@ var (
 )
 
 func filterNpmInstall(raw string) (string, error) {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return raw, nil
+	}
+	if !looksLikeNpmInstallOutput(trimmed) {
+		return raw, nil
+	}
+
 	lines := strings.Split(raw, "\n")
 
 	var warnings []string
@@ -109,5 +117,5 @@ func filterNpmInstall(raw string) (string, error) {
 	if result == "" {
 		return raw, nil
 	}
-	return result, nil
+	return outputSanityCheck(raw, result), nil
 }

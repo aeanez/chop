@@ -193,7 +193,8 @@ func filterAwsEc2Describe(raw string) (string, error) {
 		return "No instances found", nil
 	}
 	header := fmt.Sprintf("EC2 Instances (%d):", len(lines))
-	return header + "\n" + strings.Join(lines, "\n"), nil
+	result := header + "\n" + strings.Join(lines, "\n")
+	return outputSanityCheck(raw, result), nil
 }
 
 func extractNameTag(instance map[string]interface{}) string {

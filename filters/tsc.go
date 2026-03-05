@@ -19,11 +19,15 @@ var (
 )
 
 func filterTsc(raw string) (string, error) {
-	raw = strings.TrimSpace(raw)
-	if raw == "" {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
 		return "no errors", nil
 	}
+	if !looksLikeTscOutput(trimmed) {
+		return raw, nil
+	}
 
+	raw = trimmed
 	lines := strings.Split(raw, "\n")
 
 	type tscError struct {
@@ -111,5 +115,6 @@ func filterTsc(raw string) (string, error) {
 	out = append(out, "")
 	out = append(out, fmt.Sprintf("%d errors in %d files", len(errors), len(fileSet)))
 
-	return strings.Join(out, "\n"), nil
+	result := strings.Join(out, "\n")
+	return outputSanityCheck(raw, result), nil
 }

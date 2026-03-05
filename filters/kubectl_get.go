@@ -5,11 +5,15 @@ import (
 )
 
 func filterKubectlGet(raw string) (string, error) {
-	raw = strings.TrimSpace(raw)
-	if raw == "" {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
 		return "No resources found", nil
 	}
+	if !looksLikeKubectlGetOutput(trimmed) {
+		return raw, nil
+	}
 
+	raw = trimmed
 	// Pass through JSON/YAML output
 	if strings.HasPrefix(raw, "{") || strings.HasPrefix(raw, "[") || strings.HasPrefix(raw, "apiVersion:") || strings.HasPrefix(raw, "kind:") {
 		return raw, nil
@@ -68,7 +72,8 @@ func filterKubectlGet(raw string) (string, error) {
 		return "No resources found", nil
 	}
 
-	return strings.Join(out, "\n"), nil
+	result := strings.Join(out, "\n")
+	return outputSanityCheck(raw, result), nil
 }
 
 type colBound struct {

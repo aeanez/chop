@@ -6,7 +6,15 @@ import (
 )
 
 func filterGitStatus(raw string) (string, error) {
-	lines := strings.Split(strings.TrimSpace(raw), "\n")
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return raw, nil
+	}
+	if !looksLikeGitStatusOutput(trimmed) {
+		return raw, nil
+	}
+
+	lines := strings.Split(trimmed, "\n")
 
 	var staged, modified, untracked []string
 
@@ -51,5 +59,6 @@ func filterGitStatus(raw string) (string, error) {
 		fmt.Fprintf(&out, "untracked(%d): %s\n", len(untracked), strings.Join(untracked, ", "))
 	}
 
-	return strings.TrimSpace(out.String()), nil
+	result := strings.TrimSpace(out.String())
+	return outputSanityCheck(raw, result), nil
 }

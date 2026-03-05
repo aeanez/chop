@@ -9,6 +9,9 @@ func filterGitBranch(raw string) (string, error) {
 	if trimmed == "" {
 		return "", nil
 	}
+	if !looksLikeGitBranchOutput(trimmed) {
+		return raw, nil
+	}
 
 	lines := strings.Split(trimmed, "\n")
 
@@ -39,5 +42,6 @@ func filterGitBranch(raw string) (string, error) {
 		out.WriteString("\n")
 	}
 
-	return strings.TrimSpace(out.String()), nil
+	result := strings.TrimSpace(out.String())
+	return outputSanityCheck(raw, result), nil
 }
