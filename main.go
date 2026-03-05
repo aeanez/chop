@@ -8,7 +8,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/AgusRdz/chop/config"
 	"github.com/AgusRdz/chop/filters"
+	"github.com/AgusRdz/chop/shell"
 	"github.com/AgusRdz/chop/tee"
 	"github.com/AgusRdz/chop/tracking"
 )
@@ -32,12 +34,22 @@ func main() {
 	case "capture":
 		runCapture(os.Args[2:])
 		return
+	case "config":
+		runConfig()
+		return
+	case "init":
+		if len(os.Args) < 3 {
+			fmt.Fprintln(os.Stderr, "usage: chop init <bash|zsh|fish>")
+			os.Exit(1)
+		}
+		fmt.Print(shell.GenerateInit(os.Args[2]))
+		return
 	}
+
+	cfg := config.Load()
 
 	command := os.Args[1]
 	args := os.Args[2:]
-
-	filter := filters.Get(command, args)
 
 	cmd := exec.Command(command, args...)
 	cmd.Stdin = os.Stdin
@@ -59,21 +71,27 @@ func main() {
 		fullCmd = command + " " + strings.Join(args, " ")
 	}
 
+	// Skip filtering if command is disabled in config
 	var finalOutput string
-	if filter != nil {
-		filtered, ferr := filter(raw)
-		if ferr != nil {
-			finalOutput = raw
-		} else {
-			finalOutput = filtered
-		}
+	if cfg.IsDisabled(command) {
+		finalOutput = raw
 	} else {
-		// Auto-detect compression for unrecognized commands
-		autoFiltered, aerr := filters.AutoDetect(raw)
-		if aerr != nil || autoFiltered == raw {
-			finalOutput = raw
+		filter := filters.Get(command, args)
+		if filter != nil {
+			filtered, ferr := filter(raw)
+			if ferr != nil {
+				finalOutput = raw
+			} else {
+				finalOutput = filtered
+			}
 		} else {
-			finalOutput = autoFiltered
+			// Auto-detect compression for unrecognized commands
+			autoFiltered, aerr := filters.AutoDetect(raw)
+			if aerr != nil || autoFiltered == raw {
+				finalOutput = raw
+			} else {
+				finalOutput = autoFiltered
+			}
 		}
 	}
 
@@ -171,6 +189,28 @@ func runCapture(args []string) {
 	}
 
 	os.Exit(exitCode)
+}
+
+func runConfig() {
+	path := config.Path()
+	fmt.Printf("config: %s\n", path)
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			fmt.Println("(no config file found)")
+		} else {
+			fmt.Fprintf(os.Stderr, "chop: failed to read config: %v\n", err)
+		}
+		return
+	}
+
+	content := strings.TrimSpace(string(data))
+	if content == "" {
+		fmt.Println("(config file is empty)")
+	} else {
+		fmt.Println(content)
+	}
 }
 
 func runGain(args []string) {
