@@ -149,6 +149,54 @@ func GetHistory(limit int) ([]Record, error) {
 	return records, rows.Err()
 }
 
+// CommandSummary holds per-command aggregate stats.
+type CommandSummary struct {
+	BaseCommand string
+	Count       int
+	RawTokens   int
+	SavedTokens int
+	SavingsPct  float64
+	ZeroCount   int // times with 0% savings
+}
+
+// GetCommandSummary returns per-base-command aggregates, sorted by tokens saved descending.
+func GetCommandSummary() ([]CommandSummary, error) {
+	if err := Init(); err != nil {
+		return nil, err
+	}
+	rows, err := db.Query(`
+		SELECT
+			CASE
+				WHEN INSTR(command, ' ') > 0 THEN SUBSTR(command, 1, INSTR(command, ' ') - 1)
+				ELSE command
+			END AS base_cmd,
+			COUNT(*) AS cnt,
+			COALESCE(SUM(raw_tokens), 0) AS raw,
+			COALESCE(SUM(raw_tokens - filtered_tokens), 0) AS saved,
+			SUM(CASE WHEN savings_pct = 0 AND raw_tokens > 0 THEN 1 ELSE 0 END) AS zero_cnt
+		FROM tracking
+		GROUP BY base_cmd
+		ORDER BY saved DESC
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var summaries []CommandSummary
+	for rows.Next() {
+		var s CommandSummary
+		if err := rows.Scan(&s.BaseCommand, &s.Count, &s.RawTokens, &s.SavedTokens, &s.ZeroCount); err != nil {
+			return nil, err
+		}
+		if s.RawTokens > 0 {
+			s.SavingsPct = float64(s.SavedTokens) / float64(s.RawTokens) * 100.0
+		}
+		summaries = append(summaries, s)
+	}
+	return summaries, rows.Err()
+}
+
 // Cleanup removes records older than the given number of days.
 func Cleanup(days int) error {
 	if err := Init(); err != nil {
@@ -185,8 +233,32 @@ func FormatHistory(records []Record) string {
 	var b strings.Builder
 	b.WriteString("recent commands:\n")
 	for _, r := range records {
-		b.WriteString(fmt.Sprintf("  %s  %-20s %.1f%% saved (%d -> %d tokens)\n",
-			r.Timestamp, r.Command, r.SavingsPct, r.RawTokens, r.FilteredTokens))
+		marker := " "
+		if r.SavingsPct == 0 && r.RawTokens > 0 {
+			marker = "!"
+		}
+		b.WriteString(fmt.Sprintf(" %s %s  %-25s %5.1f%%  (%d -> %d tokens)\n",
+			marker, r.Timestamp, r.Command, r.SavingsPct, r.RawTokens, r.FilteredTokens))
+	}
+	b.WriteString("\n ! = 0% savings (filter may need improvement)\n")
+	return b.String()
+}
+
+// FormatSummary formats per-command aggregates.
+func FormatSummary(summaries []CommandSummary) string {
+	if len(summaries) == 0 {
+		return "no commands tracked yet"
+	}
+	var b strings.Builder
+	b.WriteString("per-command savings:\n")
+	b.WriteString(fmt.Sprintf("  %-12s %5s %8s %7s %s\n", "COMMAND", "CALLS", "SAVED", "AVG", ""))
+	for _, s := range summaries {
+		warn := ""
+		if s.ZeroCount > 0 {
+			warn = fmt.Sprintf("(%d calls at 0%%)", s.ZeroCount)
+		}
+		b.WriteString(fmt.Sprintf("  %-12s %5d %8s %6.0f%%  %s\n",
+			s.BaseCommand, s.Count, formatNum(s.SavedTokens), s.SavingsPct, warn))
 	}
 	return b.String()
 }

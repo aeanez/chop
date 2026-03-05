@@ -228,10 +228,13 @@ func runConfig() {
 }
 
 func runGain(args []string) {
-	showHistory := false
+	var showHistory, showSummary bool
 	for _, a := range args {
-		if a == "--history" {
+		switch a {
+		case "--history":
 			showHistory = true
+		case "--summary":
+			showSummary = true
 		}
 	}
 
@@ -242,6 +245,16 @@ func runGain(args []string) {
 			os.Exit(1)
 		}
 		fmt.Print(tracking.FormatHistory(records))
+		return
+	}
+
+	if showSummary {
+		summaries, err := tracking.GetCommandSummary()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "chop: failed to read summary: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Print(tracking.FormatSummary(summaries))
 		return
 	}
 
@@ -261,7 +274,9 @@ Usage:
   chop <subcommand>           Run a chop subcommand
 
 Subcommands:
-  gain [--history]            Show token savings stats
+  gain                        Show token savings stats
+  gain --history              Recent commands with savings
+  gain --summary              Per-command savings breakdown
   config                      Show config file path and contents
   init <bash|zsh|fish>        Output shell integration code
   init --global               Install Claude Code hook (~/.claude/settings.json)
