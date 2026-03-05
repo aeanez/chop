@@ -10,6 +10,7 @@ import (
 
 	"github.com/AgusRdz/chop/config"
 	"github.com/AgusRdz/chop/filters"
+	"github.com/AgusRdz/chop/hooks"
 	"github.com/AgusRdz/chop/shell"
 	"github.com/AgusRdz/chop/tee"
 	"github.com/AgusRdz/chop/tracking"
@@ -40,12 +41,22 @@ func main() {
 	case "config":
 		runConfig()
 		return
+	case "hook":
+		hooks.RunHook()
+		return
 	case "init":
 		if len(os.Args) < 3 {
-			fmt.Fprintln(os.Stderr, "usage: chop init <bash|zsh|fish>")
+			fmt.Fprintln(os.Stderr, "usage: chop init <bash|zsh|fish|--global|--uninstall>")
 			os.Exit(1)
 		}
-		fmt.Print(shell.GenerateInit(os.Args[2]))
+		switch os.Args[2] {
+		case "--global", "-g":
+			hooks.Install()
+		case "--uninstall":
+			hooks.Uninstall()
+		default:
+			fmt.Print(shell.GenerateInit(os.Args[2]))
+		}
 		return
 	}
 
@@ -253,6 +264,8 @@ Subcommands:
   gain [--history]            Show token savings stats
   config                      Show config file path and contents
   init <bash|zsh|fish>        Output shell integration code
+  init --global               Install Claude Code hook (~/.claude/settings.json)
+  init --uninstall            Remove Claude Code hook
   capture <command> [args...] Run command and save raw + filtered output
   help                        Show this help
   version                     Show version
@@ -261,6 +274,10 @@ Shell integration:
   eval "$(chop init bash)"    Add to ~/.bashrc to auto-wrap all commands
   eval "$(chop init zsh)"     Add to ~/.zshrc
   chop init fish | source     Add to fish config
+
+Claude Code integration:
+  chop init --global          Register PreToolUse hook for Claude Code
+  chop init --uninstall       Remove the hook
 
 Config:
   %s
