@@ -53,10 +53,6 @@ func Reset() {
 	if removeFile(filepath.Join(dir, "hook-audit.log")) {
 		fmt.Println("cleared audit log")
 	}
-
-	if removeDir(filepath.Join(dir, "tee")) {
-		fmt.Println("cleared tee cache")
-	}
 }
 
 // dataDir returns the chop data directory (~/.local/share/chop/).

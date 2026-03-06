@@ -95,16 +95,6 @@ chop curl https://api.io # JSON compressed to structure + types
 chop anything            # auto-detects and compresses any output
 ```
 
-### Read files with compression
-
-```bash
-chop read src/main.go              # strip comments, collapse blank lines
-chop read src/main.go -a           # aggressive: also strip imports and all blanks
-chop read src/main.go --lines 50   # smart truncation to ~50 lines
-chop read src/main.go -n           # with line numbers
-cat src/main.go | chop read - --ext .go   # from stdin with language hint
-```
-
 ## Agent Integration
 
 ### Claude Code (automatic, zero-config)
@@ -162,25 +152,6 @@ Do NOT use chop for: interactive commands, pipes, redirects, or write commands
 Any command not listed above still gets compressed via auto-detection
 (JSON, CSV, tables, log lines).
 
-## File Reading
-
-`chop read` compresses source files by stripping comments and blank lines —
-useful when you want Claude to read a file with less noise:
-
-```bash
-chop read src/server.go                     # strip comments, collapse blanks
-chop read src/server.go --aggressive        # also strip imports and blank lines
-chop read src/server.go --lines 100 -n      # truncate + line numbers
-cat largefile.py | chop read - --ext .py    # pipe from stdin
-```
-
-**Supported languages:** Go, Rust, Python, JavaScript/TypeScript, C/C++, C#,
-Java, Ruby, Shell, HTML/XML, CSS/SCSS, SQL, YAML, Markdown.
-
-**Filter levels:**
-- **Minimal** (default): removes comments (preserves doc comments), collapses 3+ blank lines to 1
-- **Aggressive** (`-a`): removes all comments including doc comments, all blank lines, and import blocks
-
 ## Token Tracking
 
 Every command is tracked in a local SQLite database:
@@ -202,11 +173,9 @@ total: 318 commands, 89,234 tokens saved (73.2% avg)
 ## Diagnostics
 
 ```bash
-chop discover          # scan Claude Code logs for missed chop opportunities
 chop hook-audit        # show last 20 hook rewrite log entries
 chop hook-audit --clear
 chop config            # show config file path and contents
-chop capture <cmd>     # save raw + filtered output as test fixtures
 ```
 
 ## Configuration
@@ -214,9 +183,6 @@ chop capture <cmd>     # save raw + filtered output as test fixtures
 `~/.config/chop/config.yml`:
 
 ```yaml
-# Save raw output to temp file for LLM re-read
-tee: true
-
 # Skip filtering for specific commands
 disabled:
   - curl

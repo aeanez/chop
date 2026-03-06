@@ -8,9 +8,6 @@ import (
 
 func TestLoadFrom_MissingFile(t *testing.T) {
 	cfg := LoadFrom("/nonexistent/path/config.yml")
-	if cfg.Tee != false {
-		t.Error("expected Tee=false for missing file")
-	}
 	if len(cfg.Disabled) != 0 {
 		t.Error("expected empty Disabled for missing file")
 	}
@@ -19,9 +16,6 @@ func TestLoadFrom_MissingFile(t *testing.T) {
 func TestLoadFrom_EmptyFile(t *testing.T) {
 	tmp := writeTemp(t, "")
 	cfg := LoadFrom(tmp)
-	if cfg.Tee != false {
-		t.Error("expected Tee=false for empty file")
-	}
 	if len(cfg.Disabled) != 0 {
 		t.Error("expected empty Disabled for empty file")
 	}
@@ -31,26 +25,8 @@ func TestLoadFrom_CommentsOnly(t *testing.T) {
 	content := "# this is a comment\n# another comment\n"
 	tmp := writeTemp(t, content)
 	cfg := LoadFrom(tmp)
-	if cfg.Tee != false {
-		t.Error("expected Tee=false for comments-only file")
-	}
-}
-
-func TestLoadFrom_TeeTrue(t *testing.T) {
-	content := "tee: true\n"
-	tmp := writeTemp(t, content)
-	cfg := LoadFrom(tmp)
-	if cfg.Tee != true {
-		t.Error("expected Tee=true")
-	}
-}
-
-func TestLoadFrom_TeeFalse(t *testing.T) {
-	content := "tee: false\n"
-	tmp := writeTemp(t, content)
-	cfg := LoadFrom(tmp)
-	if cfg.Tee != false {
-		t.Error("expected Tee=false")
+	if len(cfg.Disabled) != 0 {
+		t.Error("expected empty Disabled for comments-only file")
 	}
 }
 
@@ -91,27 +67,18 @@ func TestLoadFrom_DisabledWithQuotes(t *testing.T) {
 }
 
 func TestLoadFrom_FullConfig(t *testing.T) {
-	content := `# chop config
-tee: true
-disabled: [git, docker, kubectl]
-`
+	content := "# chop config\ndisabled: [git, docker, kubectl]\n"
 	tmp := writeTemp(t, content)
 	cfg := LoadFrom(tmp)
-	if cfg.Tee != true {
-		t.Error("expected Tee=true")
-	}
 	if len(cfg.Disabled) != 3 {
 		t.Fatalf("expected 3 disabled items, got %d", len(cfg.Disabled))
 	}
 }
 
 func TestLoadFrom_InlineComments(t *testing.T) {
-	content := "tee: true  # enable tee\ndisabled: [git] # skip git\n"
+	content := "disabled: [git] # skip git\n"
 	tmp := writeTemp(t, content)
 	cfg := LoadFrom(tmp)
-	if cfg.Tee != true {
-		t.Error("expected Tee=true with inline comment")
-	}
 	if len(cfg.Disabled) != 1 || cfg.Disabled[0] != "git" {
 		t.Errorf("expected [git], got %v", cfg.Disabled)
 	}
@@ -142,16 +109,11 @@ func TestIsDisabled_Empty(t *testing.T) {
 }
 
 func TestPath_Default(t *testing.T) {
-	// Unset XDG to test default
 	old := os.Getenv("XDG_CONFIG_HOME")
 	os.Unsetenv("XDG_CONFIG_HOME")
 	defer os.Setenv("XDG_CONFIG_HOME", old)
 
 	p := Path()
-	if !filepath.IsAbs(p) {
-		// On most systems this will be absolute via UserHomeDir
-		// Just check it ends correctly
-	}
 	if filepath.Base(p) != "config.yml" {
 		t.Errorf("expected config.yml, got %s", filepath.Base(p))
 	}

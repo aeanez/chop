@@ -8,7 +8,6 @@ import (
 
 // Config holds user preferences loaded from ~/.config/chop/config.yml.
 type Config struct {
-	Tee      bool
 	Disabled []string
 }
 
@@ -73,8 +72,6 @@ func parse(content string) Config {
 		}
 
 		switch key {
-		case "tee":
-			cfg.Tee = strings.EqualFold(value, "true")
 		case "disabled":
 			cfg.Disabled = parseList(value)
 		}

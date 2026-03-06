@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -12,13 +11,11 @@ import (
 
 	"github.com/AgusRdz/chop/cleanup"
 	"github.com/AgusRdz/chop/config"
-	"github.com/AgusRdz/chop/discover"
 	"github.com/AgusRdz/chop/filters"
 	"github.com/AgusRdz/chop/hooks"
-	readpkg "github.com/AgusRdz/chop/read"
-	"github.com/AgusRdz/chop/updater"
-	"github.com/AgusRdz/chop/tee"
+
 	"github.com/AgusRdz/chop/tracking"
+	"github.com/AgusRdz/chop/updater"
 )
 
 // version is set at build time via -ldflags "-X main.version=..."
@@ -49,9 +46,6 @@ func main() {
 	case "config":
 		runConfig()
 		return
-	case "discover":
-		discover.Run()
-		return
 	case "hook":
 		hooks.RunHook()
 		return
@@ -69,9 +63,6 @@ func main() {
 		return
 	case "reset":
 		cleanup.Reset()
-		return
-	case "read":
-		runRead(os.Args[2:])
 		return
 	case "init":
 		if len(os.Args) < 3 {
@@ -149,17 +140,6 @@ func main() {
 
 	fmt.Print(finalOutput)
 	trackSilent(fullCmd, raw, finalOutput)
-
-	// Tee: save raw output for LLM re-read
-	rawTokens := tracking.CountTokens(raw)
-	filteredTokens := tracking.CountTokens(finalOutput)
-	savingsPct := 0.0
-	if rawTokens > 0 {
-		savingsPct = 100.0 - (float64(filteredTokens)/float64(rawTokens)*100.0)
-	}
-	if path := tee.Save(fullCmd, raw, exitCode, savingsPct); path != "" {
-		fmt.Fprintf(os.Stderr, "[full output: %s]\n", path)
-	}
 
 	os.Exit(exitCode)
 }
@@ -363,73 +343,6 @@ func runHookAudit(args []string) {
 	}
 }
 
-func runRead(args []string) {
-	level := "minimal"
-	maxLines := 0
-	lineNumbers := false
-	ext := ""
-	var filePath string
-
-	for i := 0; i < len(args); i++ {
-		switch args[i] {
-		case "--aggressive", "-a":
-			level = "aggressive"
-		case "--lines", "-l":
-			if i+1 < len(args) {
-				i++
-				n := 0
-				for _, c := range args[i] {
-					if c >= '0' && c <= '9' {
-						n = n*10 + int(c-'0')
-					}
-				}
-				maxLines = n
-			}
-		case "-n", "--line-numbers":
-			lineNumbers = true
-		case "--ext":
-			if i+1 < len(args) {
-				i++
-				ext = args[i]
-				if ext != "" && ext[0] != '.' {
-					ext = "." + ext
-				}
-			}
-		case "-":
-			filePath = "-"
-		default:
-			if filePath == "" {
-				filePath = args[i]
-			}
-		}
-	}
-
-	if filePath == "" {
-		fmt.Fprintln(os.Stderr, "usage: chop read <file|-|--ext .go> [--aggressive] [--lines N] [-n]")
-		os.Exit(1)
-	}
-
-	if filePath == "-" {
-		data, err := io.ReadAll(os.Stdin)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "chop: failed to read stdin: %v\n", err)
-			os.Exit(1)
-		}
-		raw, filtered := readpkg.RunStdin(string(data), ext, level, maxLines, lineNumbers)
-		fmt.Print(filtered)
-		trackSilent("read -", raw, filtered)
-		return
-	}
-
-	raw, filtered, err := readpkg.Run(filePath, level, maxLines, lineNumbers)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "chop: %v\n", err)
-		os.Exit(1)
-	}
-
-	fmt.Print(filtered)
-	trackSilent("read "+filePath, raw, filtered)
-}
 
 func printHelp() {
 	fmt.Printf(`chop %s — CLI output compressor for Claude Code
@@ -446,14 +359,11 @@ Subcommands:
   init --global               Install Claude Code hook (~/.claude/settings.json)
   init --uninstall            Remove Claude Code hook
   init --status               Check if hook is installed
-  read <file|-> [flags]       Read file or stdin with language-aware compression
-  capture <command> [args...] Run command and save raw + filtered output
-  discover                    Scan Claude Code logs for missed chop opportunities
   hook-audit                  Show last 20 hook rewrite log entries
   hook-audit --clear          Clear the hook audit log
   uninstall                   Remove everything: hook, data, config, binary
   uninstall --keep-data       Uninstall but preserve tracking history
-  reset                       Clear data (tracking, audit log, tee) — keep installation
+  reset                       Clear data (tracking, audit log) — keep installation
   update                      Update to the latest version
   help                        Show this help
   version                     Show version
@@ -463,16 +373,8 @@ Claude Code integration:
   chop init --uninstall       Remove the hook
   chop init --status          Check hook installation status
 
-Read flags:
-  -                           Read from stdin (use --ext for language hint)
-  --ext .go                   Language hint for stdin (e.g., .go, .py, .ts)
-  --aggressive, -a            Strip all comments, blanks, and imports
-  --lines N, -l N             Limit output to N lines (smart truncation)
-  -n, --line-numbers          Prepend line numbers
-
 Config:
   %s
-  tee: true/false             Enable tee mode (show raw on stderr)
   disabled: [cmd1, cmd2]      Skip filtering for listed commands
 
 Examples:
