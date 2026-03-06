@@ -183,8 +183,15 @@ func getGitFilter(args []string) FilterFunc {
 		return filterGitLog
 	case "diff":
 		return filterGitDiff
+	case "show":
+		return filterGitDiff
 	case "branch":
 		return filterGitBranch
+	case "stash":
+		if len(args) > 1 && args[1] == "list" {
+			return filterGitLog
+		}
+		return nil
 	default:
 		return nil
 	}
@@ -219,7 +226,7 @@ func getDotnetFilter(args []string) FilterFunc {
 		return nil
 	}
 	switch args[0] {
-	case "build":
+	case "build", "clean", "pack", "publish":
 		return filterDotnetBuild
 	case "test":
 		return filterDotnetTestCmd
@@ -397,6 +404,8 @@ func getAngularFilter(args []string) FilterFunc {
 		return filterNgTest
 	case "serve", "s":
 		return filterNgServe
+	case "lint":
+		return filterEslint
 	default:
 		return nil
 	}
@@ -411,6 +420,8 @@ func getNxFilter(args []string) FilterFunc {
 		return filterNxBuild
 	case "test":
 		return filterNxTest
+	case "lint":
+		return filterEslint
 	default:
 		return nil
 	}
