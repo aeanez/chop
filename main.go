@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/AgusRdz/chop/cleanup"
 	"github.com/AgusRdz/chop/config"
 	"github.com/AgusRdz/chop/discover"
 	"github.com/AgusRdz/chop/filters"
@@ -56,6 +57,18 @@ func main() {
 		return
 	case "hook-audit":
 		runHookAudit(os.Args[2:])
+		return
+	case "uninstall":
+		keepData := false
+		for _, a := range os.Args[2:] {
+			if a == "--keep-data" {
+				keepData = true
+			}
+		}
+		cleanup.Uninstall(keepData)
+		return
+	case "reset":
+		cleanup.Reset()
 		return
 	case "read":
 		runRead(os.Args[2:])
@@ -438,6 +451,9 @@ Subcommands:
   discover                    Scan Claude Code logs for missed chop opportunities
   hook-audit                  Show last 20 hook rewrite log entries
   hook-audit --clear          Clear the hook audit log
+  uninstall                   Remove everything: hook, data, config, binary
+  uninstall --keep-data       Uninstall but preserve tracking history
+  reset                       Clear data (tracking, audit log, tee) — keep installation
   update                      Update to the latest version
   help                        Show this help
   version                     Show version
