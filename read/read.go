@@ -172,11 +172,11 @@ func FilterMinimal(content string, lang Language) string {
 }
 
 // stripInlineBlockComments removes inline /* ... */ style comments from a line.
+// It avoids stripping /* */ that appear inside string literals.
 func stripInlineBlockComments(line string, lang Language) string {
 	if lang.BlockStart == "" || lang.BlockEnd == "" {
 		return line
 	}
-	// Only handle /* */ style inline comments (not <!-- --> or """)
 	if lang.BlockStart != "/*" {
 		return line
 	}
@@ -184,6 +184,11 @@ func stripInlineBlockComments(line string, lang Language) string {
 		start := strings.Index(line, "/*")
 		if start < 0 {
 			break
+		}
+		// Check if /* is inside a string literal by counting unescaped quotes before it
+		prefix := line[:start]
+		if strings.Count(prefix, `"`)%2 != 0 || strings.Count(prefix, "`")%2 != 0 || strings.Count(prefix, "'")%2 != 0 {
+			break // Inside a string literal, don't strip
 		}
 		end := strings.Index(line[start:], "*/")
 		if end < 0 {
