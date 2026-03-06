@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"os/exec"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"github.com/AgusRdz/chop/config"
+	"github.com/AgusRdz/chop/discover"
 	"github.com/AgusRdz/chop/filters"
 	"github.com/AgusRdz/chop/hooks"
 	"github.com/AgusRdz/chop/shell"
@@ -41,8 +43,14 @@ func main() {
 	case "config":
 		runConfig()
 		return
+	case "discover":
+		discover.Run()
+		return
 	case "hook":
 		hooks.RunHook()
+		return
+	case "hook-audit":
+		runHookAudit(os.Args[2:])
 		return
 	case "init":
 		if len(os.Args) < 3 {
@@ -266,6 +274,65 @@ func runGain(args []string) {
 	fmt.Println(tracking.FormatGain(stats))
 }
 
+func runHookAudit(args []string) {
+	clearFlag := false
+	for _, a := range args {
+		if a == "--clear" {
+			clearFlag = true
+		}
+	}
+
+	logPath, err := hooks.AuditLogPath()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "chop: cannot determine audit log path")
+		os.Exit(1)
+	}
+
+	if clearFlag {
+		if err := os.Truncate(logPath, 0); err != nil {
+			if os.IsNotExist(err) {
+				fmt.Println("audit log already empty")
+				return
+			}
+			fmt.Fprintf(os.Stderr, "chop: failed to clear audit log: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Println("audit log cleared")
+		return
+	}
+
+	f, err := os.Open(logPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			fmt.Println("no hook audit log yet")
+			return
+		}
+		fmt.Fprintf(os.Stderr, "chop: failed to read audit log: %v\n", err)
+		os.Exit(1)
+	}
+	defer f.Close()
+
+	// Read all lines, keep last 20
+	var lines []string
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+
+	if len(lines) == 0 {
+		fmt.Println("no hook audit log entries")
+		return
+	}
+
+	start := 0
+	if len(lines) > 20 {
+		start = len(lines) - 20
+	}
+	for _, line := range lines[start:] {
+		fmt.Println(line)
+	}
+}
+
 func printHelp() {
 	fmt.Printf(`chop %s — CLI output compressor for AI coding assistants
 
@@ -282,6 +349,9 @@ Subcommands:
   init --global               Install Claude Code hook (~/.claude/settings.json)
   init --uninstall            Remove Claude Code hook
   capture <command> [args...] Run command and save raw + filtered output
+  discover                    Scan Claude Code logs for missed chop opportunities
+  hook-audit                  Show last 20 hook rewrite log entries
+  hook-audit --clear          Clear the hook audit log
   help                        Show this help
   version                     Show version
 

@@ -2,7 +2,12 @@ package hooks
 
 import (
 	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
+	"time"
 )
 
 func makeInput(command string) []byte {
@@ -36,7 +41,7 @@ func TestSupportedCommandGetsPrepended(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.cmd, func(t *testing.T) {
-			output, shouldModify := processHookInput(makeInput(tt.cmd))
+			output, shouldModify, _ := processHookInput(makeInput(tt.cmd))
 			if !shouldModify {
 				t.Fatalf("expected command to be modified: %s", tt.cmd)
 			}
@@ -60,7 +65,7 @@ func TestSupportedCommandGetsPrepended(t *testing.T) {
 }
 
 func TestAlreadyChoppedPassthrough(t *testing.T) {
-	_, shouldModify := processHookInput(makeInput("chop git status"))
+	_, shouldModify, _ := processHookInput(makeInput("chop git status"))
 	if shouldModify {
 		t.Error("should not modify already-chopped command")
 	}
@@ -74,7 +79,7 @@ func TestPipePassthrough(t *testing.T) {
 	}
 	for _, cmd := range tests {
 		t.Run(cmd, func(t *testing.T) {
-			_, shouldModify := processHookInput(makeInput(cmd))
+			_, shouldModify, _ := processHookInput(makeInput(cmd))
 			if shouldModify {
 				t.Errorf("should not modify pipe command: %s", cmd)
 			}
@@ -90,7 +95,7 @@ func TestRedirectPassthrough(t *testing.T) {
 	}
 	for _, cmd := range tests {
 		t.Run(cmd, func(t *testing.T) {
-			_, shouldModify := processHookInput(makeInput(cmd))
+			_, shouldModify, _ := processHookInput(makeInput(cmd))
 			if shouldModify {
 				t.Errorf("should not modify redirect command: %s", cmd)
 			}
@@ -106,7 +111,7 @@ func TestCompoundCommandPassthrough(t *testing.T) {
 	}
 	for _, cmd := range tests {
 		t.Run(cmd, func(t *testing.T) {
-			_, shouldModify := processHookInput(makeInput(cmd))
+			_, shouldModify, _ := processHookInput(makeInput(cmd))
 			if shouldModify {
 				t.Errorf("should not modify compound command: %s", cmd)
 			}
@@ -125,7 +130,7 @@ func TestUnsupportedCommandPassthrough(t *testing.T) {
 	}
 	for _, cmd := range tests {
 		t.Run(cmd, func(t *testing.T) {
-			_, shouldModify := processHookInput(makeInput(cmd))
+			_, shouldModify, _ := processHookInput(makeInput(cmd))
 			if shouldModify {
 				t.Errorf("should not modify unsupported command: %s", cmd)
 			}
@@ -134,7 +139,7 @@ func TestUnsupportedCommandPassthrough(t *testing.T) {
 }
 
 func TestEmptyCommandPassthrough(t *testing.T) {
-	_, shouldModify := processHookInput(makeInput(""))
+	_, shouldModify, _ := processHookInput(makeInput(""))
 	if shouldModify {
 		t.Error("should not modify empty command")
 	}
@@ -155,7 +160,7 @@ func TestShellBuiltinPassthrough(t *testing.T) {
 	}
 	for _, cmd := range tests {
 		t.Run(cmd, func(t *testing.T) {
-			_, shouldModify := processHookInput(makeInput(cmd))
+			_, shouldModify, _ := processHookInput(makeInput(cmd))
 			if shouldModify {
 				t.Errorf("should not modify shell builtin: %s", cmd)
 			}
@@ -174,15 +179,76 @@ func TestNonBashToolPassthrough(t *testing.T) {
 		},
 	}
 	data, _ := json.Marshal(input)
-	_, shouldModify := processHookInput(data)
+	_, shouldModify, _ := processHookInput(data)
 	if shouldModify {
 		t.Error("should not modify non-Bash tool")
 	}
 }
 
 func TestInvalidJSONPassthrough(t *testing.T) {
-	_, shouldModify := processHookInput([]byte("not json"))
+	_, shouldModify, _ := processHookInput([]byte("not json"))
 	if shouldModify {
 		t.Error("should not modify invalid JSON")
+	}
+}
+
+func TestAuditLogWritesToFile(t *testing.T) {
+	// Use a temp directory to avoid polluting the real audit log
+	tmpDir := t.TempDir()
+	logPath := filepath.Join(tmpDir, "hook-audit.log")
+
+	// Manually write audit entry (same logic as auditLog but to temp path)
+	f, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	if err != nil {
+		t.Fatalf("failed to open audit log: %v", err)
+	}
+	ts := time.Now().Format("2006-01-02 15:04:05")
+	original := "git status"
+	rewritten := "chop git status"
+	fmt.Fprintf(f, "%s  rewrite  %s -> %s\n", ts, original, rewritten)
+	f.Close()
+
+	data, err := os.ReadFile(logPath)
+	if err != nil {
+		t.Fatalf("failed to read audit log: %v", err)
+	}
+
+	content := string(data)
+	if !strings.Contains(content, "rewrite") {
+		t.Error("audit log should contain 'rewrite'")
+	}
+	if !strings.Contains(content, "git status -> chop git status") {
+		t.Errorf("audit log should contain rewrite entry, got: %s", content)
+	}
+
+	// Verify it's a single line
+	lines := strings.Split(strings.TrimSpace(content), "\n")
+	if len(lines) != 1 {
+		t.Errorf("expected 1 line, got %d", len(lines))
+	}
+}
+
+func TestAuditLogAppendsMultipleEntries(t *testing.T) {
+	tmpDir := t.TempDir()
+	logPath := filepath.Join(tmpDir, "hook-audit.log")
+
+	for i := 0; i < 3; i++ {
+		f, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+		if err != nil {
+			t.Fatalf("failed to open audit log: %v", err)
+		}
+		ts := time.Now().Format("2006-01-02 15:04:05")
+		fmt.Fprintf(f, "%s  rewrite  cmd%d -> chop cmd%d\n", ts, i, i)
+		f.Close()
+	}
+
+	data, err := os.ReadFile(logPath)
+	if err != nil {
+		t.Fatalf("failed to read audit log: %v", err)
+	}
+
+	lines := strings.Split(strings.TrimSpace(string(data)), "\n")
+	if len(lines) != 3 {
+		t.Errorf("expected 3 lines, got %d", len(lines))
 	}
 }

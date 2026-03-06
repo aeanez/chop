@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
+	"time"
 )
 
 var supportedCommands = map[string]bool{
@@ -62,56 +64,57 @@ func RunHook() {
 		os.Exit(0)
 	}
 
-	output, shouldModify := processHookInput(input)
+	output, shouldModify, original := processHookInput(input)
 	if shouldModify {
+		auditLog(original, "chop "+original)
 		fmt.Print(string(output))
 	}
 	// If not modifying, output nothing (passthrough)
 }
 
 // processHookInput parses the hook JSON and determines whether to wrap the command.
-// Returns (outputJSON, true) if the command should be modified, or (nil, false) for passthrough.
-func processHookInput(input []byte) ([]byte, bool) {
+// Returns (outputJSON, shouldModify, originalCommand).
+func processHookInput(input []byte) ([]byte, bool, string) {
 	var h hookInput
 	if err := json.Unmarshal(input, &h); err != nil {
-		return nil, false
+		return nil, false, ""
 	}
 
 	if h.ToolName != "Bash" {
-		return nil, false
+		return nil, false, ""
 	}
 
 	var ti toolInput
 	if err := json.Unmarshal(h.ToolInput, &ti); err != nil {
-		return nil, false
+		return nil, false, ""
 	}
 
 	command := strings.TrimSpace(ti.Command)
 	if command == "" {
-		return nil, false
+		return nil, false, ""
 	}
 
 	// Already wrapped with chop
 	if strings.HasPrefix(command, "chop ") {
-		return nil, false
+		return nil, false, command
 	}
 
 	// Starts with a dot (source shorthand)
 	if strings.HasPrefix(command, ". ") {
-		return nil, false
+		return nil, false, command
 	}
 
 	// Shell builtins
 	for _, prefix := range shellBuiltins {
 		if strings.HasPrefix(command, prefix) {
-			return nil, false
+			return nil, false, command
 		}
 	}
 
 	// Compound commands — check for shell operators
 	for _, op := range compoundOperators {
 		if strings.Contains(command, op) {
-			return nil, false
+			return nil, false, command
 		}
 	}
 
@@ -127,7 +130,7 @@ func processHookInput(input []byte) ([]byte, bool) {
 	}
 
 	if !supportedCommands[baseCmd] {
-		return nil, false
+		return nil, false, command
 	}
 
 	out := hookOutput{
@@ -142,8 +145,36 @@ func processHookInput(input []byte) ([]byte, bool) {
 
 	data, err := json.Marshal(out)
 	if err != nil {
-		return nil, false
+		return nil, false, command
 	}
 
-	return data, true
+	return data, true, command
+}
+
+// auditLog appends a rewrite entry to the hook audit log.
+// Silent on all errors — never slows down or breaks the hook.
+func auditLog(original, rewritten string) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return
+	}
+	dir := filepath.Join(home, ".local", "share", "chop")
+	os.MkdirAll(dir, 0o755)
+	path := filepath.Join(dir, "hook-audit.log")
+	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+	ts := time.Now().Format("2006-01-02 15:04:05")
+	fmt.Fprintf(f, "%s  rewrite  %s -> %s\n", ts, original, rewritten)
+}
+
+// AuditLogPath returns the path to the hook audit log file.
+func AuditLogPath() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(home, ".local", "share", "chop", "hook-audit.log"), nil
 }
