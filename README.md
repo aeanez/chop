@@ -215,7 +215,7 @@ chop config            # show config file path and contents
 
 ## Migrating from ~/bin
 
-Versions before v0.14.4 installed the binary to `~/bin`. Run the migration script to move it to the standard location and update your shell config automatically.
+Versions before v0.14.4 (pre v1.0.0) installed the binary to `~/bin`. Run the migration script to move it to the standard location and update your shell config automatically.
 
 **macOS / Linux:**
 
