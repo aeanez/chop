@@ -127,28 +127,36 @@ func GetStats() (Stats, error) {
 		return Stats{}, err
 	}
 
-	weekAgo := time.Now().UTC().AddDate(0, 0, -7).Format("2006-01-02 15:04:05")
+	// Calendar week: Monday 00:00 through now
+	now := time.Now().UTC()
+	weekday := now.Weekday()
+	if weekday == time.Sunday {
+		weekday = 7
+	}
+	weekStart := time.Date(now.Year(), now.Month(), now.Day()-int(weekday-time.Monday), 0, 0, 0, 0, time.UTC).Format("2006-01-02 00:00:00")
 	row = db.QueryRow(
 		`SELECT COUNT(*), COALESCE(SUM(raw_tokens - filtered_tokens),0) FROM tracking WHERE timestamp >= ?`,
-		weekAgo,
+		weekStart,
 	)
 	if err := row.Scan(&s.WeekCommands, &s.WeekSavedTokens); err != nil {
 		return Stats{}, err
 	}
 
-	monthAgo := time.Now().UTC().AddDate(0, -1, 0).Format("2006-01-02 15:04:05")
+	// Calendar month: 1st of current month through now
+	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC).Format("2006-01-02 00:00:00")
 	row = db.QueryRow(
 		`SELECT COUNT(*), COALESCE(SUM(raw_tokens - filtered_tokens),0) FROM tracking WHERE timestamp >= ?`,
-		monthAgo,
+		monthStart,
 	)
 	if err := row.Scan(&s.MonthCommands, &s.MonthSavedTokens); err != nil {
 		return Stats{}, err
 	}
 
-	yearAgo := time.Now().UTC().AddDate(-1, 0, 0).Format("2006-01-02 15:04:05")
+	// Calendar year: Jan 1 of current year through now
+	yearStart := time.Date(now.Year(), 1, 1, 0, 0, 0, 0, time.UTC).Format("2006-01-02 00:00:00")
 	row = db.QueryRow(
 		`SELECT COUNT(*), COALESCE(SUM(raw_tokens - filtered_tokens),0) FROM tracking WHERE timestamp >= ?`,
-		yearAgo,
+		yearStart,
 	)
 	if err := row.Scan(&s.YearCommands, &s.YearSavedTokens); err != nil {
 		return Stats{}, err
