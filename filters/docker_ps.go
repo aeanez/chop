@@ -32,6 +32,12 @@ func filterDockerPs(raw string) (string, error) {
 		return raw, nil
 	}
 
+	// Standard docker ps has IMAGE before STATUS before NAMES.
+	// Custom --format can reorder columns, breaking the bounds math — return raw.
+	if imageIdx > statusIdx || statusIdx > nameIdx {
+		return raw, nil
+	}
+
 	// Find the end of each column by looking at the next column start
 	// Columns in docker ps: CONTAINER ID, IMAGE, COMMAND, CREATED, STATUS, PORTS, NAMES
 	// We need IMAGE, STATUS, NAMES
