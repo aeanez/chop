@@ -211,9 +211,31 @@ Do NOT use chop for: interactive commands, pipes, redirects, or write commands
 | **HTTP** | `curl`, `http` (HTTPie) | 50-80% |
 | **Search** | `grep`, `rg` | 50-70% |
 | **System** | `ping`, `ps`, `ss`/`netstat`, `df`/`du` | 50-80% |
+| **Files/Logs** | `cat`, `tail`, `less`, `more` | 60-95% |
 
 Any command not listed above still gets compressed via auto-detection
 (JSON, CSV, tables, log lines).
+
+### Log Pattern Compression
+
+When reading log files with `cat`, `tail`, or any log-producing command, chop groups
+structurally similar lines by replacing variable parts (UUIDs, IPs, timestamps, numbers,
+`key=value` pairs) with a fingerprint, then shows a representative line with a repeat count:
+
+```bash
+# Before (51 lines)
+2024-03-11 10:00:00 INFO Processing request id=req0001 duration=31ms status=200
+2024-03-11 10:00:01 INFO Processing request id=req0002 duration=32ms status=200
+... (48 more identical-structure lines)
+2024-03-11 11:00:00 ERROR Connection timeout to 10.0.0.5:3306
+
+# After (2 lines)
+2024-03-11 11:00:00 ERROR Connection timeout to 10.0.0.5:3306
+2024-03-11 10:00:49 INFO Processing request id=req0049 duration=79ms status=200 (x50)
+```
+
+Errors and warnings are always shown in full and floated to the top. Falls back to
+exact-match deduplication when no repeating patterns are found.
 
 ## Token Tracking
 

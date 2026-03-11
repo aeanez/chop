@@ -660,5 +660,7 @@ Examples:
   chop docker ps              Compact container list
   chop kubectl get pods       Filtered pod table
   chop curl https://api.io    Auto-compressed JSON response
+  chop cat app.log            Pattern-grouped log lines with repeat counts
+  chop tail -f app.log        Same, for streaming log files
 `, version, config.Path())
 }
