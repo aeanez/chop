@@ -94,6 +94,26 @@ another line of output`
 	}
 }
 
+func TestFilterGrepPlainOutputNoExpand(t *testing.T) {
+	// Plain output >10 lines should not expand (sanity check must apply)
+	lines := make([]string, 12)
+	for i := range lines {
+		lines[i] = fmt.Sprintf("  line %d: some content here", i+1)
+	}
+	raw := strings.Join(lines, "\n")
+
+	got, err := filterGrep(raw)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	rawTokens := len(strings.Fields(raw))
+	filteredTokens := len(strings.Fields(got))
+	if filteredTokens > rawTokens {
+		t.Errorf("filter expanded output: raw=%d tokens, filtered=%d tokens", rawTokens, filteredTokens)
+	}
+}
+
 func TestFilterGrepWithAnsi(t *testing.T) {
 	raw := "\x1b[32msrc/main.go\x1b[0m:\x1b[33m10\x1b[0m:    fmt.Println(\"hello\")\n" +
 		"\x1b[32msrc/main.go\x1b[0m:\x1b[33m20\x1b[0m:    fmt.Println(\"world\")"

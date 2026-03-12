@@ -11,7 +11,12 @@ func filterGitDiff(raw string) (string, error) {
 		return "", nil
 	}
 	if !looksLikeGitDiffOutput(trimmed) {
-		return raw, nil
+		return filterGitStat(trimmed)
+	}
+
+	// No "diff --git" headers — likely --stat or --numstat output
+	if !strings.Contains(trimmed, "diff --git") {
+		return filterGitStat(trimmed)
 	}
 
 	lines := strings.Split(trimmed, "\n")
@@ -57,7 +62,7 @@ func filterGitDiff(raw string) (string, error) {
 	}
 
 	if len(stats) == 0 {
-		return trimmed, nil
+		return filterGitStat(trimmed)
 	}
 
 	var out strings.Builder

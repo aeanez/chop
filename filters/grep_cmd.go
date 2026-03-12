@@ -73,7 +73,7 @@ func filterGrep(raw string) (string, error) {
 			out = append(out, line)
 		}
 		out = append(out, fmt.Sprintf("%d matches total", len(lines)))
-		return strings.Join(out, "\n"), nil
+		return outputSanityCheck(raw, strings.Join(out, "\n")), nil
 	}
 
 	totalFiles := len(fileOrder)
