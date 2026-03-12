@@ -39,8 +39,12 @@ install:
 	@echo "installed chop $(VERSION) ($(GOOS)/$(GOARCH)) to $(INSTALL_DIR)/chop$(EXT)"
 
 # --- Changelog ---
-# Requires: git-cliff (https://git-cliff.org)
-changelog:
+# Requires: git-cliff (https://git-cliff.org/docs/installation)
+.PHONY: _require-git-cliff
+_require-git-cliff:
+	@command -v git-cliff >/dev/null 2>&1 || { echo "git-cliff is required but not installed. See https://git-cliff.org/docs/installation"; exit 1; }
+
+changelog: _require-git-cliff
 	git-cliff --output CHANGELOG.md
 	@echo "updated CHANGELOG.md"
 
@@ -63,29 +67,32 @@ release:
 	echo "detected: $$BUMP"; \
 	$(MAKE) release-$$BUMP
 
-release-patch:
+release-patch: _require-git-cliff
 	@NEXT=v$(MAJOR).$(MINOR).$(shell echo $$(($(PATCH)+1))); \
 	echo "$(CURRENT_TAG) -> $$NEXT"; \
 	git-cliff --tag $$NEXT --output CHANGELOG.md && \
 	git add CHANGELOG.md && \
 	git commit -m "chore: update changelog for $$NEXT" && \
-	git tag $$NEXT && git push origin HEAD $$NEXT && echo "released $$NEXT"
+	git tag $$NEXT && \
+	{ git push origin HEAD $$NEXT && echo "released $$NEXT"; } || { git tag -d $$NEXT; git reset --soft HEAD~1; echo "push failed — tag and commit rolled back"; exit 1; }
 
-release-minor:
+release-minor: _require-git-cliff
 	@NEXT=v$(MAJOR).$(shell echo $$(($(MINOR)+1))).0; \
 	echo "$(CURRENT_TAG) -> $$NEXT"; \
 	git-cliff --tag $$NEXT --output CHANGELOG.md && \
 	git add CHANGELOG.md && \
 	git commit -m "chore: update changelog for $$NEXT" && \
-	git tag $$NEXT && git push origin HEAD $$NEXT && echo "released $$NEXT"
+	git tag $$NEXT && \
+	{ git push origin HEAD $$NEXT && echo "released $$NEXT"; } || { git tag -d $$NEXT; git reset --soft HEAD~1; echo "push failed — tag and commit rolled back"; exit 1; }
 
-release-major:
+release-major: _require-git-cliff
 	@NEXT=v$(shell echo $$(($(MAJOR)+1))).0.0; \
 	echo "$(CURRENT_TAG) -> $$NEXT"; \
 	git-cliff --tag $$NEXT --output CHANGELOG.md && \
 	git add CHANGELOG.md && \
 	git commit -m "chore: update changelog for $$NEXT" && \
-	git tag $$NEXT && git push origin HEAD $$NEXT && echo "released $$NEXT"
+	git tag $$NEXT && \
+	{ git push origin HEAD $$NEXT && echo "released $$NEXT"; } || { git tag -d $$NEXT; git reset --soft HEAD~1; echo "push failed — tag and commit rolled back"; exit 1; }
 
 cross:
 	docker compose run --rm dev sh -c "\

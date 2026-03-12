@@ -999,6 +999,9 @@ func extractLatestVersion(cl string) string {
 			if inSection {
 				break // hit the next version, stop
 			}
+			if strings.HasPrefix(line, "## [Unreleased]") {
+				continue // skip unreleased section
+			}
 			inSection = true
 		}
 		if inSection {
