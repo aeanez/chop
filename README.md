@@ -190,6 +190,12 @@ $env:CHOP_INSTALL_DIR="C:\tools\chop"; irm https://raw.githubusercontent.com/Agu
 
 The installer places the binary in `%LOCALAPPDATA%\Programs\chop` by default and adds it to your user PATH automatically. Restart your terminal after installing.
 
+**With Homebrew (macOS / Linux):**
+
+```bash
+brew install AgusRdz/tap/chop
+```
+
 **With Go:**
 
 ```bash
@@ -209,6 +215,35 @@ Update to latest:
 ```bash
 chop update
 ```
+
+## Verification
+
+All release binaries are signed with [GitHub Artifact Attestations](https://docs.github.com/en/actions/security-guides/using-artifact-attestations-to-establish-provenance-for-builds),
+providing cryptographic proof that a given binary was built from this repository at a specific commit.
+
+Requires the [GitHub CLI](https://cli.github.com/).
+
+```bash
+gh attestation verify chop-darwin-arm64 --repo AgusRdz/chop
+```
+
+A successful verification looks like:
+
+```
+✓ Verification succeeded!
+
+  Repo:     AgusRdz/chop
+  Workflow: .github/workflows/release.yml
+  Commit:   a1b2c3d4
+  Tag:      v1.11.0
+```
+
+> **macOS note:** If downloaded manually (not via Homebrew), macOS may block the binary on first run.
+> Remove the quarantine flag before running:
+> ```bash
+> xattr -d com.apple.quarantine ./chop
+> ```
+> Installing via Homebrew avoids this entirely.
 
 After updating, chop automatically re-execs the new binary and runs `--post-update-check` to verify the install location. If chop is installed in the legacy `~/bin` directory, it will suggest running the migration script. You can also run this check manually at any time:
 

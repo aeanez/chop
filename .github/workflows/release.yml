@@ -8,6 +8,8 @@ on:
 
 permissions:
   contents: write
+  id-token: write
+  attestations: write
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -71,3 +73,64 @@ jobs:
             bin/chop-darwin-amd64
             bin/chop-darwin-arm64
             bin/chop-windows-amd64.exe
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: bin/chop-*
+
+      - name: Update Homebrew formula
+        env:
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          [ -z "${HOMEBREW_TAP_TOKEN}" ] && echo "HOMEBREW_TAP_TOKEN not set, skipping" && exit 0
+          VERSION=${{ github.ref_name }}
+          VER=${VERSION#v}
+          SHA_DARWIN_ARM64=$(sha256sum bin/chop-darwin-arm64 | awk '{print $1}')
+          SHA_DARWIN_AMD64=$(sha256sum bin/chop-darwin-amd64 | awk '{print $1}')
+          SHA_LINUX_AMD64=$(sha256sum bin/chop-linux-amd64 | awk '{print $1}')
+          SHA_LINUX_ARM64=$(sha256sum bin/chop-linux-arm64 | awk '{print $1}')
+          git clone https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/AgusRdz/homebrew-tap.git tap
+          cat > tap/Formula/chop.rb << FORMULA
+          class Chop < Formula
+            desc "CLI output compressor for Claude Code"
+            homepage "https://getchop.run"
+            version "${VER}"
+
+            on_macos do
+              if Hardware::CPU.arm?
+                url "https://github.com/AgusRdz/chop/releases/download/${VERSION}/chop-darwin-arm64"
+                sha256 "${SHA_DARWIN_ARM64}"
+              else
+                url "https://github.com/AgusRdz/chop/releases/download/${VERSION}/chop-darwin-amd64"
+                sha256 "${SHA_DARWIN_AMD64}"
+              end
+            end
+
+            on_linux do
+              if Hardware::CPU.arm?
+                url "https://github.com/AgusRdz/chop/releases/download/${VERSION}/chop-linux-arm64"
+                sha256 "${SHA_LINUX_ARM64}"
+              else
+                url "https://github.com/AgusRdz/chop/releases/download/${VERSION}/chop-linux-amd64"
+                sha256 "${SHA_LINUX_AMD64}"
+              end
+            end
+
+            def install
+              binary = Dir["chop-*"].first
+              chmod 0755, binary
+              bin.install binary => "chop"
+            end
+
+            test do
+              assert_match version.to_s, shell_output("#{bin}/chop --version")
+            end
+          end
+          FORMULA
+          cd tap
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/chop.rb
+          git commit -m "chop ${VERSION}"
+          git push
