@@ -13,6 +13,78 @@ focused.
 
 The name comes from _chop chop_: the sound of something eating through all that verbosity before it ever reaches the context window.
 
+---
+
+## How It Works
+
+When Claude Code runs a Bash command, the raw output is fed back into the
+conversation as a `tool_result` — part of the **input** of the next API call.
+`chop` intercepts that result and compresses it before it enters the context.
+
+```mermaid
+sequenceDiagram
+    participant CC as Claude Code
+    participant H as PreToolUse Hook
+    participant CH as chop
+    participant API as Claude API
+
+    CC->>H: bash("docker ps")
+    H->>CH: raw output (850 tokens)
+    CH-->>H: compressed output (250 tokens)
+    H->>API: tool_result (250 tokens)
+    API-->>CC: response
+```
+
+### The Cascade Effect
+
+The savings aren't one-time. Every `tool_result` that enters the context
+**stays there** for the rest of the session — included in the input of every
+subsequent API call. A bloated command result compounds across turns.
+
+```mermaid
+graph TD
+    T1["Turn 1\ndocker ps → 850 tokens added"]
+    T2["Turn 2\n+850 tokens carried forward"]
+    T3["Turn 3\n+850 tokens carried forward"]
+    TN["Turn N\n+850 tokens carried forward"]
+    COMPACT["Compaction triggered early ⚠️"]
+
+    T1 --> T2 --> T3 --> TN --> COMPACT
+
+    style COMPACT fill:#f66,color:#fff
+```
+
+```mermaid
+graph TD
+    T1C["Turn 1\nchop docker ps → 250 tokens added"]
+    T2C["Turn 2\n+250 tokens carried forward"]
+    T3C["Turn 3\n+250 tokens carried forward"]
+    TNC["Turn N\n+250 tokens carried forward"]
+    SESSION["Longer session, more context budget ✅"]
+
+    T1C --> T2C --> T3C --> TNC --> SESSION
+
+    style SESSION fill:#2a2,color:#fff
+```
+
+### Why Output Tokens Also Benefit
+
+API output tokens cost **5× more** than input tokens and are slower to
+generate (higher TTFB). A larger, noisier context causes the model to produce
+longer, more verbose responses — more recapitulation, more hedging. Keeping
+the context lean produces tighter, faster output naturally.
+
+```
+Input token price:   $3.00 / MTok  (Sonnet 4.6)
+Output token price: $15.00 / MTok  (Sonnet 4.6)
+```
+
+> ⚠️ **200K threshold**: Once input exceeds 200K tokens, pricing jumps to
+> $6.00 input / $22.50 output — applied to the *entire* request, not just
+> the excess. Staying compressed avoids crossing that threshold.
+
+---
+
 ## Before & After
 
 ```
