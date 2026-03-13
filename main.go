@@ -328,7 +328,7 @@ disabled: []
 
 func runGain(args []string) {
 	var showHistory, showSummary, showUnchopped, verbose bool
-	var skipCmd, unskipCmd, deleteCmd string
+	var skipCmd, unskipCmd, deleteCmd, noTrackCmd, resumeTrackCmd string
 	for i := 0; i < len(args); i++ {
 		switch args[i] {
 		case "--history":
@@ -357,6 +357,16 @@ func runGain(args []string) {
 				i++
 				deleteCmd = args[i]
 			}
+		case "--no-track":
+			if i+1 < len(args) {
+				i++
+				noTrackCmd = args[i]
+			}
+		case "--resume-track":
+			if i+1 < len(args) {
+				i++
+				resumeTrackCmd = args[i]
+			}
 		}
 	}
 
@@ -366,6 +376,28 @@ func runGain(args []string) {
 			os.Exit(1)
 		}
 		fmt.Printf("deleted all records for %q\n", deleteCmd)
+		return
+	}
+
+	if noTrackCmd != "" {
+		if err := tracking.DeleteCommand(noTrackCmd); err != nil {
+			fmt.Fprintf(os.Stderr, "chop: failed to delete records: %v\n", err)
+			os.Exit(1)
+		}
+		if err := tracking.AddTrackingSkip(noTrackCmd); err != nil {
+			fmt.Fprintf(os.Stderr, "chop: failed to add no-track entry: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("%q removed from history and will no longer be tracked\n", noTrackCmd)
+		return
+	}
+
+	if resumeTrackCmd != "" {
+		if err := tracking.RemoveTrackingSkip(resumeTrackCmd); err != nil {
+			fmt.Fprintf(os.Stderr, "chop: failed to remove no-track entry: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("%q will be tracked again\n", resumeTrackCmd)
 		return
 	}
 
@@ -1135,6 +1167,8 @@ Subcommands:
   gain --unchopped --skip X   Mark command X as intentionally not needing a filter
   gain --unchopped --unskip X Remove command X from the skip list
   gain --delete X             Permanently delete all tracking records for command X
+  gain --no-track X           Delete records for X and never track it again
+  gain --resume-track X       Re-enable tracking for a previously ignored command
   config                      Show global config path and contents
   config init                 Create a starter global config.yml
   init --global               Install Claude Code hook (~/.claude/settings.json)

@@ -90,6 +90,13 @@ func Init() error {
 			command TEXT PRIMARY KEY,
 			added_at TEXT NOT NULL
 		)`)
+		if dbErr != nil {
+			return
+		}
+		_, dbErr = db.Exec(`CREATE TABLE IF NOT EXISTS tracking_skip (
+			command TEXT PRIMARY KEY,
+			added_at TEXT NOT NULL
+		)`)
 	})
 	return dbErr
 }
@@ -105,6 +112,11 @@ func initForTest() {
 func Track(command string, rawTokens, filteredTokens int) error {
 	if err := Init(); err != nil {
 		return err
+	}
+	var skipped int
+	row := db.QueryRow(`SELECT COUNT(*) FROM tracking_skip WHERE command = ? OR ? LIKE command || ' %'`, command, command)
+	if err := row.Scan(&skipped); err == nil && skipped > 0 {
+		return nil
 	}
 	var savingsPct float64
 	if rawTokens > 0 {
@@ -346,6 +358,25 @@ func UnskipUnchopped(cmd string) error {
 		return err
 	}
 	_, err := db.Exec(`DELETE FROM unchopped_skip WHERE command = ?`, cmd)
+	return err
+}
+
+// AddTrackingSkip adds a command to the no-track list so it is never recorded again.
+func AddTrackingSkip(cmd string) error {
+	if err := Init(); err != nil {
+		return err
+	}
+	now := time.Now().Local().Format("2006-01-02 15:04:05")
+	_, err := db.Exec(`INSERT OR REPLACE INTO tracking_skip (command, added_at) VALUES (?, ?)`, cmd, now)
+	return err
+}
+
+// RemoveTrackingSkip removes a command from the no-track list, re-enabling tracking.
+func RemoveTrackingSkip(cmd string) error {
+	if err := Init(); err != nil {
+		return err
+	}
+	_, err := db.Exec(`DELETE FROM tracking_skip WHERE command = ?`, cmd)
 	return err
 }
 

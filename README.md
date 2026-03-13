@@ -339,16 +339,20 @@ chop - token savings report
 - **Write commands** (`git commit`, `git push`, `git add`, `git tag`, etc.) — these produce near-zero output by design. There is nothing to compress; 0% is expected and correct.
 - **Already-minimal output** — a `git log --oneline -5` or a `find` that returned one result is already compact. No filter can improve on it.
 
-If these entries feel noisy, you can delete them permanently from your history:
+If these entries feel noisy, you can remove them and prevent them from being tracked again:
 
 ```bash
-chop gain --delete "git push"
-chop gain --delete "git commit"
-chop gain --delete "git add"
-chop gain --delete "git tag"
+chop gain --no-track "git push"
+chop gain --no-track "git commit"
+chop gain --no-track "git add"
+chop gain --no-track "git tag"
 ```
 
-This removes all tracked records for that command key and hides it from future reports.
+This deletes all existing records for that command and permanently suppresses future tracking. To re-enable tracking later:
+
+```bash
+chop gain --resume-track "git push"
+```
 
 ### Unchopped Report
 
@@ -360,6 +364,8 @@ chop gain --unchopped --verbose  # untruncated command names + full detail
 chop gain --unchopped --skip X   # mark X as intentionally unfiltered (hides it)
 chop gain --unchopped --unskip X # restore X to the candidates list
 chop gain --delete X             # permanently delete all tracking records for X
+chop gain --no-track X           # delete records for X and never track it again
+chop gain --resume-track X       # re-enable tracking for a previously ignored command
 ```
 
 The report has two sections:
