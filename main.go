@@ -122,6 +122,9 @@ func main() {
 	case "local":
 		runLocal(os.Args[2:])
 		return
+	case "list":
+		runList()
+		return
 	case "init":
 		if len(os.Args) < 3 {
 			fmt.Fprintln(os.Stderr, "usage: chop init <--global|--uninstall|--status>")
@@ -847,6 +850,34 @@ func ensureGitignore() {
 	fmt.Printf("added %s to .gitignore\n", strings.Join(toAdd, ", "))
 }
 
+func runList() {
+	builtins := filters.ListBuiltins()
+	seen := make(map[string][]string)
+	for _, b := range builtins {
+		seen[b.Command] = append(seen[b.Command], b.Subcommand)
+	}
+	keys := make([]string, 0, len(seen))
+	for k := range seen {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	fmt.Println("built-in filters:")
+	for _, cmd := range keys {
+		subs := seen[cmd]
+		if len(subs) == 1 && subs[0] == "" {
+			fmt.Printf("  %s\n", cmd)
+		} else {
+			var nonEmpty []string
+			for _, s := range subs {
+				if s != "" {
+					nonEmpty = append(nonEmpty, s)
+				}
+			}
+			fmt.Printf("  %s (%s)\n", cmd, strings.Join(nonEmpty, ", "))
+		}
+	}
+}
+
 func runFilter(args []string) {
 	if len(args) == 0 {
 		showFilters()
@@ -1359,6 +1390,7 @@ Subcommands:
   filter add <cmd> [flags]    Add or update a filter (--keep, --drop, --head, --tail, --exec, --local)
   filter remove <cmd>         Remove a filter (--local for project-level)
   filter test <cmd>           Test a custom filter (reads stdin)
+  list                        List all built-in filters
   local                       Show local project config (.chop.yml)
   local add "git diff"        Disable a command in this project
   local remove "git diff"     Re-enable a command in this project

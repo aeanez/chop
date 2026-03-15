@@ -272,6 +272,10 @@ func getGitFilter(args []string) FilterFunc {
 		return filterGitBranch
 	case "push":
 		return filterGitPush
+	case "pull":
+		return filterGitPull
+	case "fetch":
+		return filterGitFetch
 	case "remote", "tag", "checkout", "reset":
 		return filterAutoDetect
 	case "stash":
@@ -586,5 +590,85 @@ func getComposerFilter(args []string) FilterFunc {
 		return filterComposerInstall
 	default:
 		return nil
+	}
+}
+
+// BuiltinCommand describes a command with a registered built-in filter.
+type BuiltinCommand struct {
+	Command    string
+	Subcommand string // empty if filter applies to entire command
+}
+
+// ListBuiltins returns all commands and subcommands that have built-in filters.
+func ListBuiltins() []BuiltinCommand {
+	return []BuiltinCommand{
+		{Command: "git", Subcommand: "status"},
+		{Command: "git", Subcommand: "log"},
+		{Command: "git", Subcommand: "diff"},
+		{Command: "git", Subcommand: "show"},
+		{Command: "git", Subcommand: "branch"},
+		{Command: "git", Subcommand: "push"},
+		{Command: "git", Subcommand: "pull"},
+		{Command: "git", Subcommand: "fetch"},
+		{Command: "npm", Subcommand: "install"},
+		{Command: "npm", Subcommand: "list"},
+		{Command: "npm", Subcommand: "test"},
+		{Command: "npx"},
+		{Command: "pnpm", Subcommand: "install"},
+		{Command: "pnpm", Subcommand: "list"},
+		{Command: "yarn", Subcommand: "install"},
+		{Command: "bun", Subcommand: "install"},
+		{Command: "docker", Subcommand: "build"},
+		{Command: "docker", Subcommand: "ps"},
+		{Command: "docker", Subcommand: "logs"},
+		{Command: "docker-compose"},
+		{Command: "dotnet", Subcommand: "build"},
+		{Command: "dotnet", Subcommand: "test"},
+		{Command: "kubectl", Subcommand: "get"},
+		{Command: "kubectl", Subcommand: "describe"},
+		{Command: "kubectl", Subcommand: "logs"},
+		{Command: "helm", Subcommand: "install"},
+		{Command: "helm", Subcommand: "list"},
+		{Command: "terraform", Subcommand: "plan"},
+		{Command: "terraform", Subcommand: "apply"},
+		{Command: "terraform", Subcommand: "init"},
+		{Command: "cargo", Subcommand: "build"},
+		{Command: "cargo", Subcommand: "test"},
+		{Command: "go", Subcommand: "build"},
+		{Command: "go", Subcommand: "test"},
+		{Command: "tsc"},
+		{Command: "eslint"},
+		{Command: "biome"},
+		{Command: "gh"},
+		{Command: "grep"},
+		{Command: "rg"},
+		{Command: "curl"},
+		{Command: "aws"},
+		{Command: "az"},
+		{Command: "gcloud"},
+		{Command: "mvn"},
+		{Command: "gradle"},
+		{Command: "ng"},
+		{Command: "nx"},
+		{Command: "pytest"},
+		{Command: "pip", Subcommand: "install"},
+		{Command: "uv"},
+		{Command: "mypy"},
+		{Command: "ruff"},
+		{Command: "flake8"},
+		{Command: "pylint"},
+		{Command: "bundle", Subcommand: "install"},
+		{Command: "rspec"},
+		{Command: "rubocop"},
+		{Command: "ansible-playbook"},
+		{Command: "composer", Subcommand: "install"},
+		{Command: "make"},
+		{Command: "cmake"},
+		{Command: "gcc"},
+		{Command: "ping"},
+		{Command: "ps"},
+		{Command: "ss"},
+		{Command: "netstat"},
+		{Command: "df"},
 	}
 }

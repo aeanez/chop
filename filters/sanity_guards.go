@@ -50,6 +50,26 @@ func looksLikeGitBranchOutput(s string) bool {
 	return false
 }
 
+func looksLikeGitFetchOutput(s string) bool {
+	return strings.Contains(s, "From ") ||
+		strings.Contains(s, "->") ||
+		strings.Contains(s, "[new branch]") ||
+		strings.Contains(s, "[new tag]") ||
+		strings.Contains(s, "remote:") ||
+		strings.Contains(s, "Unpacking")
+}
+
+func looksLikeGitPullOutput(s string) bool {
+	return strings.Contains(s, "Already up to date") ||
+		strings.Contains(s, "Fast-forward") ||
+		strings.Contains(s, "Merge made by") ||
+		strings.Contains(s, "Successfully rebased") ||
+		strings.Contains(s, "CONFLICT") ||
+		strings.Contains(s, "files changed") ||
+		strings.Contains(s, "Updating") ||
+		strings.Contains(s, "From ")
+}
+
 func looksLikeNpmInstallOutput(s string) bool {
 	return strings.Contains(s, "added") ||
 		strings.Contains(s, "npm") ||
