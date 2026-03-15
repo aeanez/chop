@@ -225,8 +225,44 @@ filters:
 	if len(result) != 1 {
 		t.Fatalf("expected 1 filter, got %d", len(result))
 	}
-	if _, ok := result["mycli build"]; !ok {
+	f, ok := result["mycli build"]
+	if !ok {
 		t.Error("missing 'mycli build' filter")
+	}
+	if f.Trusted {
+		t.Error("expected filter loaded from file to be untrusted by default")
+	}
+}
+
+func TestLoadCustomFilters_Missing(t *testing.T) {
+	tmpDir := t.TempDir()
+	oldXDG := os.Getenv("XDG_CONFIG_HOME")
+	os.Setenv("XDG_CONFIG_HOME", tmpDir)
+	defer os.Setenv("XDG_CONFIG_HOME", oldXDG)
+
+	result := LoadCustomFilters()
+	if result != nil {
+		t.Fatal("expected nil for missing config file")
+	}
+}
+
+func TestLoadCustomFilters_InvalidYAML(t *testing.T) {
+	tmpDir := t.TempDir()
+	oldXDG := os.Getenv("XDG_CONFIG_HOME")
+	os.Setenv("XDG_CONFIG_HOME", tmpDir)
+	defer os.Setenv("XDG_CONFIG_HOME", oldXDG)
+
+	configPath := filepath.Join(tmpDir, "chop", "filters.yml")
+	if err := os.MkdirAll(filepath.Dir(configPath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(configPath, []byte("invalid: yaml: {"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	result := LoadCustomFilters()
+	if result != nil {
+		t.Fatal("expected nil for invalid YAML")
 	}
 }
 
@@ -238,7 +274,10 @@ func TestLoadCustomFiltersFromMissing(t *testing.T) {
 }
 
 func TestLoadCustomFiltersWithLocal(t *testing.T) {
-	// Create a temp dir with a local filters file
+	// 1. Test with empty cwd
+	LoadCustomFiltersWithLocal("")
+
+	// 2. Test with local filters only
 	dir := t.TempDir()
 	localPath := filepath.Join(dir, ".chop-filters.yml")
 
@@ -252,8 +291,82 @@ filters:
 	}
 
 	result := LoadCustomFiltersWithLocal(dir)
-	if _, ok := result["local-tool"]; !ok {
+	f, ok := result["local-tool"]
+	if !ok {
 		t.Error("missing local filter 'local-tool'")
+	}
+	if f.Trusted {
+		t.Error("expected local filter to be untrusted")
+	}
+
+	// 3. Test with both global and local filters
+	tmpXDG := t.TempDir()
+	oldXDG := os.Getenv("XDG_CONFIG_HOME")
+	os.Setenv("XDG_CONFIG_HOME", tmpXDG)
+	defer os.Setenv("XDG_CONFIG_HOME", oldXDG)
+
+	globalConfigDir := filepath.Join(tmpXDG, "chop")
+	if err := os.MkdirAll(globalConfigDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	globalConfigPath := filepath.Join(globalConfigDir, "filters.yml")
+	globalContent := `
+filters:
+  "global-tool":
+    keep: ["useful"]
+  "common-tool":
+    head: 10
+`
+	if err := os.WriteFile(globalConfigPath, []byte(globalContent), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	projectDir := t.TempDir()
+	localConfigPath := filepath.Join(projectDir, ".chop-filters.yml")
+	localContent := `
+filters:
+  "local-tool":
+    drop: ["noise"]
+  "common-tool":
+    tail: 5
+`
+	if err := os.WriteFile(localConfigPath, []byte(localContent), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	result = LoadCustomFiltersWithLocal(projectDir)
+	if len(result) != 3 {
+		t.Fatalf("expected 3 filters, got %d", len(result))
+	}
+
+	f, ok = result["global-tool"]
+	if !ok {
+		t.Error("missing 'global-tool'")
+	}
+	if !f.Trusted {
+		t.Error("expected 'global-tool' to be trusted")
+	}
+
+	f, ok = result["local-tool"]
+	if !ok {
+		t.Error("missing 'local-tool'")
+	}
+	if f.Trusted {
+		t.Error("expected 'local-tool' to be untrusted")
+	}
+
+	f, ok = result["common-tool"]
+	if !ok {
+		t.Error("missing 'common-tool'")
+	}
+	if f.Tail != 5 {
+		t.Errorf("expected tail: 5, got %d", f.Tail)
+	}
+	if f.Head != 0 {
+		t.Errorf("expected head: 0 (overwritten), got %d", f.Head)
+	}
+	if f.Trusted {
+		t.Error("expected overridden 'common-tool' to be untrusted")
 	}
 }
 
@@ -302,7 +415,11 @@ filters:
 	if len(result) != 1 {
 		t.Fatalf("expected 1 filter, got %d", len(result))
 	}
-	if _, ok := result["mycli build"]; !ok {
+	f, ok := result["mycli build"]
+	if !ok {
 		t.Error("missing 'mycli build' filter")
+	}
+	if !f.Trusted {
+		t.Error("expected global filter to be trusted")
 	}
 }
