@@ -272,6 +272,10 @@ func getGitFilter(args []string) FilterFunc {
 		return filterGitBranch
 	case "push":
 		return filterGitPush
+	case "pull":
+		return filterGitPull
+	case "fetch":
+		return filterGitFetch
 	case "remote", "tag", "checkout", "reset":
 		return filterAutoDetect
 	case "stash":
@@ -574,6 +578,70 @@ func getBundleFilter(args []string) FilterFunc {
 		return filterBundleInstall
 	default:
 		return nil
+	}
+}
+
+// BuiltinCommand describes a built-in filter entry for listing.
+type BuiltinCommand struct {
+	Command     string
+	Subcommands []string
+}
+
+// ListBuiltins returns all built-in filters grouped by command.
+func ListBuiltins() []BuiltinCommand {
+	return []BuiltinCommand{
+		{"git", []string{"status", "log", "diff", "show", "branch", "push", "pull", "fetch", "stash list"}},
+		{"npm", []string{"install", "update", "list", "view", "test", "run test", "run build", "run lint"}},
+		{"npx", []string{"jest", "vitest", "mocha", "playwright", "tsc", "nx", "ng"}},
+		{"pnpm", []string{"install", "add", "list", "test"}},
+		{"yarn", []string{"install", "add", "list", "test"}},
+		{"bun", []string{"install", "add", "test"}},
+		{"docker", []string{"ps", "build", "images", "logs", "rmi", "inspect", "stats", "top", "diff", "history", "network ls", "volume ls", "system df", "compose"}},
+		{"docker-compose", []string{"ps", "build", "logs", "images"}},
+		{"kubectl", []string{"get", "describe", "logs", "top", "apply", "delete"}},
+		{"helm", []string{"install", "upgrade", "list", "status"}},
+		{"terraform", []string{"plan", "apply", "init"}},
+		{"cargo", []string{"test", "build", "check", "clippy"}},
+		{"go", []string{"test", "build", "vet"}},
+		{"dotnet", []string{"build", "clean", "pack", "publish", "test"}},
+		{"gh", []string{"pr list", "pr view", "issue list", "issue view", "run list", "run view"}},
+		{"aws", []string{"(all subcommands)"}},
+		{"az", []string{"(all subcommands)"}},
+		{"gcloud", []string{"(all subcommands)"}},
+		{"ng", []string{"build", "test", "serve", "lint"}},
+		{"nx", []string{"build", "run", "test", "lint"}},
+		{"mvn", []string{"(all subcommands)"}},
+		{"gradle", []string{"(all subcommands)"}},
+		{"pytest", nil},
+		{"pip", []string{"install", "list"}},
+		{"uv", []string{"install", "add", "pip install", "pip list"}},
+		{"mypy", nil},
+		{"ruff", nil},
+		{"flake8", nil},
+		{"pylint", nil},
+		{"rspec", nil},
+		{"rubocop", nil},
+		{"bundle", []string{"install"}},
+		{"composer", []string{"install", "update", "require"}},
+		{"ansible-playbook", nil},
+		{"make", nil},
+		{"cmake", nil},
+		{"gcc", nil},
+		{"clang", nil},
+		{"tsc", nil},
+		{"eslint", nil},
+		{"biome", nil},
+		{"curl", nil},
+		{"http", nil},
+		{"grep", nil},
+		{"rg", nil},
+		{"ping", nil},
+		{"ps", nil},
+		{"ss", nil},
+		{"netstat", nil},
+		{"df", nil},
+		{"du", nil},
+		{"acli", []string{"(Atlassian CLI)"}},
 	}
 }
 

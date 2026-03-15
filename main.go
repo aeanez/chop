@@ -116,6 +116,9 @@ func main() {
 	case "doctor":
 		runDoctor()
 		return
+	case "list":
+		runList()
+		return
 	case "filter":
 		runFilter(os.Args[2:])
 		return
@@ -1175,6 +1178,37 @@ func testFilter(args []string) {
 	fmt.Print(result)
 }
 
+func runList() {
+	builtins := filters.ListBuiltins()
+
+	total := 0
+	for _, b := range builtins {
+		if len(b.Subcommands) == 0 {
+			total++
+		} else {
+			total += len(b.Subcommands)
+		}
+	}
+
+	fmt.Printf("built-in filters (%d commands):\n\n", total)
+	for _, b := range builtins {
+		if len(b.Subcommands) == 0 {
+			fmt.Printf("  %s\n", b.Command)
+		} else {
+			fmt.Printf("  %s: %s\n", b.Command, strings.Join(b.Subcommands, ", "))
+		}
+	}
+
+	cwd, _ := os.Getwd()
+	custom := config.LoadCustomFiltersWithLocal(cwd)
+	if len(custom) > 0 {
+		fmt.Printf("\ncustom filters (%d):\n\n", len(custom))
+		for cmd := range custom {
+			fmt.Printf("  %s\n", cmd)
+		}
+	}
+}
+
 func runChangelog(args []string) {
 	if changelog == "" {
 		fmt.Println("no changelog available")
@@ -1342,6 +1376,7 @@ Subcommands:
   gain --since <duration>     Filter stats to a time window (e.g. 7d, 2w, 24h, 30m)
   gain --export json          Export history as JSON to stdout
   gain --export csv           Export history as CSV to stdout
+  list                        List all built-in and custom filters
   config                      Show global config path and contents
   config init                 Create a starter global config.yml
   init --global               Install Claude Code hook (~/.claude/settings.json)
