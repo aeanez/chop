@@ -8,6 +8,9 @@ tests/fixtures/
 # chop
 .chop.yml
 
+# signing key (never commit)
+signing.pem
+
 # local dev artifacts
 docs/
 coverage.out
