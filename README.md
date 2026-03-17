@@ -4,7 +4,7 @@
   <img src="logo.png" alt="chop logo" width="200" />
 </p>
 
-**CLI output compressor for Claude Code, Gemini CLI, and Codex CLI.**
+**CLI output compressor for Claude Code, Gemini CLI, Codex CLI, and Antigravity IDE.**
 
 Claude Code and other AI agents waste 50-90% of their context window on verbose CLI output —
 build logs, test results, container listings, git diffs. **chop** compresses
@@ -316,6 +316,16 @@ chop init --codex --uninstall  # remove hook
 chop init --codex --status     # check if installed
 ```
 
+### Antigravity IDE
+
+Register a `PreToolUse` hook in `~/.antigravity/settings.json` that wraps the `bash` tool:
+
+```bash
+chop init --antigravity              # install hook
+chop init --antigravity --uninstall  # remove hook
+chop init --antigravity --status     # check if installed
+```
+
 ## Supported Commands (60+)
 
 | Category | Commands | Savings |
@@ -337,7 +347,7 @@ chop init --codex --status     # check if installed
 | **Cloud** | `aws`, `az`, `gcloud` | 60-85% |
 | **HTTP** | `curl`, `http` (HTTPie) | 50-80% |
 | **Search** | `grep`, `rg` | 50-70% |
-| **System** | `ping`, `ps`, `ss`/`netstat`, `df`/`du` | 50-80% |
+| **System** | `ping`, `ps`, `ss`/`netstat`, `df`/`du`, `systemctl` | 50-80% |
 | **Files/Logs** | `cat`, `tail`, `less`, `more`, `ls`, `find` | 60-95% |
 | **Atlassian** | `acli` jira list/get-issue | 60-80% |
 
@@ -654,6 +664,13 @@ make cross             # build all platforms (linux/darwin/windows × amd64/arm6
 make release-patch     # tag + push next patch version
 make release-minor     # tag + push next minor version
 ```
+
+## Contributors
+
+chop started as a Claude Code-focused tool and has grown through community contributions.
+
+- **[@giankpetrov](https://github.com/giankpetrov)** — Codex CLI integration, Antigravity IDE integration, systemctl filter, Windows native path support, and security hardening
+- **[@aeanez](https://github.com/aeanez)** — log compaction, unchopped report, custom filters, changelog command, enable/disable toggle, auto-update toggle, and Gemini CLI integration
 
 ## License
 
