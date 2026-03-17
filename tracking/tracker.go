@@ -61,6 +61,7 @@ func dbPath() string {
 // Init opens (or creates) the tracking database and ensures the schema exists.
 func Init() error {
 	dbOnce.Do(func() {
+		MigrateWindowsDataDir()
 		path := dbPath()
 		if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 			dbErr = err
