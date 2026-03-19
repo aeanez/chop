@@ -135,14 +135,6 @@ $npm test
 
  PASS  src/lib/button/button.component.spec.ts
  PASS  src/lib/modal/modal.component.spec.ts
- PASS  src/lib/tooltip/tooltip.component.spec.ts
- PASS  src/lib/avatar/avatar.component.spec.ts
- PASS  src/lib/badge/badge.component.spec.ts
- PASS  src/lib/card/card.component.spec.ts
- PASS  src/lib/alert/alert.component.spec.ts
- PASS  src/lib/spinner/spinner.component.spec.ts
- PASS  src/lib/checkbox/checkbox.component.spec.ts
- PASS  src/lib/toggle/toggle.component.spec.ts
 ...58 more passing suites...
 
 Test Suites: 59 passed, 59 total
@@ -153,6 +145,8 @@ Time:        12.296 s
 $chop npm test
 all 1681 tests passed
 ```
+
+---
 
 ## Install
 
@@ -181,13 +175,6 @@ source ~/.zshrc  # or ~/.bashrc
 irm https://raw.githubusercontent.com/AgusRdz/chop/main/install.ps1 | iex
 ```
 
-Specific version or custom directory:
-
-```powershell
-$env:CHOP_VERSION="v1.0.0"; irm https://raw.githubusercontent.com/AgusRdz/chop/main/install.ps1 | iex
-$env:CHOP_INSTALL_DIR="C:\tools\chop"; irm https://raw.githubusercontent.com/AgusRdz/chop/main/install.ps1 | iex
-```
-
 The installer places the binary in `%LOCALAPPDATA%\Programs\chop` by default and adds it to your user PATH automatically. Restart your terminal after installing.
 
 **With Homebrew (macOS / Linux):**
@@ -200,14 +187,6 @@ brew install AgusRdz/tap/chop
 
 ```bash
 go install github.com/AgusRdz/chop@latest
-```
-
-**Build from source (requires Docker):**
-
-```bash
-git clone https://github.com/AgusRdz/chop.git
-cd chop
-make install    # builds + copies to ~/.local/bin/
 ```
 
 Update to latest:
@@ -227,17 +206,6 @@ Requires the [GitHub CLI](https://cli.github.com/).
 gh attestation verify chop-darwin-arm64 --repo AgusRdz/chop
 ```
 
-A successful verification looks like:
-
-```
-✓ Verification succeeded!
-
-  Repo:     AgusRdz/chop
-  Workflow: .github/workflows/release.yml
-  Commit:   a1b2c3d4
-  Tag:      v1.11.0
-```
-
 > **macOS note:** If downloaded manually (not via Homebrew), macOS may block the binary on first run.
 > Remove the quarantine flag before running:
 > ```bash
@@ -245,15 +213,9 @@ A successful verification looks like:
 > ```
 > Installing via Homebrew avoids this entirely.
 
-After updating, chop automatically re-execs the new binary and runs `--post-update-check` to verify the install location. If chop is installed in the legacy `~/bin` directory, it will suggest running the migration script. You can also run this check manually at any time:
-
-```bash
-chop --post-update-check
-```
+---
 
 ## Quick Start
-
-### Use directly
 
 ```bash
 chop git status          # compressed git status
@@ -264,6 +226,8 @@ chop terraform plan      # resource changes, no attribute noise
 chop curl https://api.io # JSON compressed to structure + types
 chop anything            # auto-detects and compresses any output
 ```
+
+---
 
 ## Agent Integration
 
@@ -282,8 +246,6 @@ You'll see `chop git status` in the tool calls — that's the hook working.
 
 ### Gemini CLI
 
-Register a `BeforeTool` hook in `~/.gemini/settings.json` that wraps `run_shell_command`:
-
 ```bash
 chop init --gemini             # install hook
 chop init --gemini --uninstall # remove hook
@@ -292,8 +254,6 @@ chop init --gemini --status    # check if installed
 
 ### Codex CLI
 
-Register a `PreToolUse` hook in `~/.codex/settings.json` that wraps the `bash` tool:
-
 ```bash
 chop init --codex              # install hook
 chop init --codex --uninstall  # remove hook
@@ -301,8 +261,6 @@ chop init --codex --status     # check if installed
 ```
 
 ### Antigravity IDE
-
-Register a `PreToolUse` hook in `~/.antigravity/settings.json` that wraps the `bash` tool:
 
 ```bash
 chop init --antigravity              # install hook
@@ -334,6 +292,8 @@ chop init --agent-handshake   # print a high-signal discovery message agents rec
 chop setup --global           # same as chop init --global
 ```
 
+---
+
 ## Supported Commands (60+)
 
 | Category | Commands | Savings |
@@ -359,8 +319,7 @@ chop setup --global           # same as chop init --global
 | **Files/Logs** | `cat`, `tail`, `less`, `more`, `ls`, `find` | 60-95% |
 | **Atlassian** | `acli` jira list/get-issue | 60-80% |
 
-Any command not listed above still gets compressed via auto-detection
-(JSON, CSV, tables, log lines).
+Any command not listed above still gets compressed via auto-detection (JSON, CSV, tables, log lines).
 
 ### Log Pattern Compression
 
@@ -380,328 +339,103 @@ structurally similar lines by replacing variable parts (UUIDs, IPs, timestamps, 
 2024-03-11 10:00:49 INFO Processing request id=req0049 duration=79ms status=200 (x50)
 ```
 
-Errors and warnings are always shown in full and floated to the top. Falls back to
-exact-match deduplication when no repeating patterns are found.
+Errors and warnings are always shown in full and floated to the top.
 
-## Token Tracking
-
-Less tokens wasted on noise, more tokens spent on productive work.
-Every command is tracked in a local SQLite database:
-
-```bash
-chop gain                               # overall stats
-chop gain --history                     # last 20 commands with per-command savings
-chop gain --history --limit 100         # last 100 commands
-chop gain --history --all               # all recorded commands
-chop gain --since 7d                    # stats for the last 7 days
-chop gain --history --since 7d          # history filtered to last 7 days
-chop gain --history --since 7d --all    # all commands in the last 7 days
-chop gain --history --verbose           # full command strings + project group headers
-chop gain --summary                     # per-command breakdown
-chop gain --projects                    # per-project savings breakdown
-chop gain --history --project <path>    # history for a specific project root
-```
-
-```
-$ chop gain
-chop - token savings report
-
-  today: 42 commands, 12,847 tokens saved
-  week:  187 commands, 52,340 tokens saved
-  month: 318 commands, 89,234 tokens saved
-  year:  1,203 commands, 456,789 tokens saved
-  total: 1,203 commands, 456,789 tokens saved (73.2% avg)
-```
-
-### The `!` marker in history
-
-`chop gain --history` marks any command with `!` when it produced 0% savings. This happens in two legitimate cases:
-
-- **Write commands** (`git commit`, `git push`, `git add`, `git tag`, etc.) — these produce near-zero output by design. There is nothing to compress; 0% is expected and correct.
-- **Already-minimal output** — a `git log --oneline -5` or a `find` that returned one result is already compact. No filter can improve on it.
-
-If these entries feel noisy, you can remove them and prevent them from being tracked again:
-
-```bash
-chop gain --no-track "git push"
-chop gain --no-track "git commit"
-chop gain --no-track "git add"
-chop gain --no-track "git tag"
-```
-
-This deletes all existing records for that command and permanently suppresses future tracking. To re-enable tracking later:
-
-```bash
-chop gain --resume-track "git push"
-```
-
-### Unchopped Report
-
-Identify commands that pass through without compression — potential candidates for new filters:
-
-```bash
-chop gain --unchopped            # show commands with no filter coverage
-chop gain --unchopped --verbose  # untruncated command names + full detail
-chop gain --unchopped --skip X   # mark X as intentionally unfiltered (hides it)
-chop gain --unchopped --unskip X # restore X to the candidates list
-chop gain --delete X             # permanently delete all tracking records for X
-chop gain --no-track X           # delete records for X and never track it again
-chop gain --resume-track X       # re-enable tracking for a previously ignored command
-```
-
-The report has two sections:
-- **no filter registered** — output passes through raw; worth writing a filter if AVG tokens is high
-- **filter registered, 0% runs** — filter exists but output was already minimal; no action needed
-
-## Diagnostics
-
-```bash
-chop doctor            # check and fix common issues
-chop hook-audit        # show last 20 hook rewrite log entries
-chop hook-audit --clear
-chop config            # show global config file path and contents
-chop config init       # create a starter global config.yml
-chop config export     # export config.yml + filters.yml to stdout
-chop config import <file>  # import a previously exported config
-chop local             # show local project config
-```
-
-## Migrating from ~/bin
-
-Versions before v0.14.4 (pre v1.0.0) installed the binary to `~/bin`. Run the migration script to move it to the standard location and update your shell config automatically.
-
-**macOS / Linux:**
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/AgusRdz/chop/main/migrate.sh | sh
-```
-
-Then reload your shell:
-
-```bash
-source ~/.zshrc  # or ~/.bashrc
-```
-
-Or manually:
-
-```bash
-mkdir -p ~/.local/bin
-mv ~/bin/chop ~/.local/bin/chop
-# remove ~/bin from ~/.zshrc or ~/.bashrc, then add:
-export PATH="$HOME/.local/bin:$PATH"
-```
-
-**Windows (PowerShell):**
-
-```powershell
-irm https://raw.githubusercontent.com/AgusRdz/chop/main/migrate.ps1 | iex
-```
-
-Or manually:
-
-```powershell
-New-Item -ItemType Directory -Force "$env:LOCALAPPDATA\Programs\chop"
-Move-Item "$env:USERPROFILE\bin\chop.exe" "$env:LOCALAPPDATA\Programs\chop\chop.exe"
-# then update your PATH in System Properties or via:
-[Environment]::SetEnvironmentVariable("PATH", "$env:LOCALAPPDATA\Programs\chop;" + [Environment]::GetEnvironmentVariable("PATH","User"), "User")
-```
-
-Restart your terminal after migrating.
-
-## Uninstall & Reset
-
-```bash
-chop uninstall                # remove hook, data, config, and binary
-chop uninstall --keep-data    # uninstall but preserve tracking history
-chop reset                    # clear tracking data and audit log, keep installation
-```
+---
 
 ## Configuration
 
 ### Global config
 
+`~/.config/chop/config.yml` — disable built-in filters globally:
+
 ```bash
-chop config            # show current global config
-chop config init       # create ~/.config/chop/config.yml with examples
-chop config export     # export config.yml + filters.yml to stdout (portable)
-chop config import <file>  # import a config file created by export
+chop config            # show current config
+chop config init       # create a starter config.yml
+chop config export     # export config + filters to stdout (for syncing to another machine)
+chop config import <file>  # import a previously exported config
 ```
 
-`~/.config/chop/config.yml`:
-
 ```yaml
-# Skip filtering - return full uncompressed output
+# ~/.config/chop/config.yml
 disabled:
   - curl                # disables all curl commands
   - "git diff"          # disables only git diff (git status still compressed)
-  - "git show"          # disables only git show
 ```
-
-Entries can be a base command (disables all subcommands) or `"command subcommand"` for granular control.
 
 ### Local config (per-project)
 
-Manage per-project overrides with `chop local`:
+Override the global disabled list for the current project:
 
 ```bash
 chop local                      # show current local config
 chop local add "git diff"       # disable git diff in this project
-chop local add "docker ps"      # add another entry
 chop local remove "git diff"    # re-enable git diff
 chop local clear                # remove local config entirely
 ```
 
-The first `chop local add` creates a `.chop.yml` file and adds it to `.gitignore` automatically.
-
-When a local `.chop.yml` exists, its `disabled` list **replaces** the global one entirely. This lets you narrow down or expand what's disabled per project.
-
-You can also create `.chop.yml` manually:
-
-```yaml
-# .chop.yml — overrides global config for this project
-disabled:
-  - "git diff"
-```
+The first `chop local add` creates `.chop.yml` and adds it to `.gitignore` automatically.
 
 ### Custom Filters
 
-Define your own output compression rules for **any** command - no Go code required.
-
-#### Managing filters
+Define your own compression rules for any command — keep/drop regex, head/tail truncation, or pipe through an external script.
 
 ```bash
-# Global filters (~/.config/chop/filters.yml)
-chop filter init                         # create starter global filters file
-chop filter new <cmd>                    # scaffold a filter + guided capture→diff→tune workflow
-chop filter add <cmd> [flags]            # add or update a filter
-chop filter remove <cmd>                 # remove a filter
-chop filter test <cmd>                   # test a filter against stdin
-chop filter                              # list all active filters
-chop filter path                         # show config file location
-
-# Project filters (.chop-filters.yml in current directory)
-chop filter init --local                 # create starter local filters file
-chop filter add <cmd> [flags] --local    # add or update a project-level filter
-chop filter remove <cmd> --local         # remove a project-level filter
+chop filter new "myctl deploy"                          # scaffold + guided workflow (recommended)
+chop filter add "myctl deploy" --keep "ERROR,WARN" --drop "DEBUG"  # add directly
+chop filter test "myctl deploy"                         # test against stdin
 ```
 
-Local filters are merged on top of global ones - **local always wins on conflict**.
+→ Full reference: [docs/custom-filters.md](docs/custom-filters.md)
 
-#### Adding filters from the CLI
+---
 
-Use `chop filter add` with one or more rule flags:
+## Token Tracking
+
+Every command is tracked locally. See how many tokens you're saving:
 
 ```bash
-chop filter add "myctl deploy" --keep "ERROR,WARN,deployed,^=" --drop "DEBUG,^\s*$"
-chop filter add "ansible-playbook" --keep "^PLAY,^TASK,fatal,changed,^\s+ok=" --tail 20
-chop filter add "custom-tool" --exec "~/.config/chop/scripts/custom-tool.sh"
-chop filter add "make build" --keep "error:,warning:,^make\[" --tail 10 --local
+chop gain                  # overall savings summary
+chop gain --history        # last 20 commands with per-command savings
+chop gain --summary        # per-command breakdown
+chop gain --projects       # per-project breakdown
+chop gain --unchopped      # commands with no filter — new candidates
+chop gain --export json    # export history as JSON or CSV
 ```
 
-Available flags:
+→ Full reference: [docs/token-tracking.md](docs/token-tracking.md)
 
-| Flag | Description |
-|------|-------------|
-| `--keep "p1,p2"` | Comma-separated regex patterns - only keep matching lines |
-| `--drop "p1,p2"` | Comma-separated regex patterns - remove matching lines |
-| `--head N` | Keep first N lines (after drop/keep) |
-| `--tail N` | Keep last N lines (after drop/keep) |
-| `--exec script` | Pipe output through an external script or command |
-| `--local` | Write to `.chop-filters.yml` in the current directory |
-
-> **Important - no manual escaping needed:** pass regex patterns as-is. chop handles
-> escaping when writing the YAML file. Use `\s` for whitespace, `\d` for digits, etc.
->
-> ```bash
-> # Correct
-> chop filter add "mytool" --drop "^\s*$"
->
-> # Wrong - double-escaping produces the wrong regex
-> chop filter add "mytool" --drop "^\\s*$"
-> ```
-
-#### Rules
-
-Rules are applied in this order:
-
-| Rule | Description |
-|------|-------------|
-| `drop` | Remove lines matching **any** pattern (applied first) |
-| `keep` | Keep only lines matching **at least one** pattern |
-| `head: N` | Keep first N lines (after drop/keep) |
-| `tail: N` | Keep last N lines (after drop/keep) |
-| `exec` | Pipe raw output through an external script (stdin - stdout) |
-
-If both `head` and `tail` are set and the output exceeds `head + tail` lines, a `... (N lines hidden)` separator is shown between them.
-
-`exec` takes priority - when set, all other rules are ignored and the script receives the raw output on stdin. Supports any command available in your shell (e.g. `jq .`, `python3 filter.py`).
-
-#### Editing the file manually
-
-You can also edit the YAML files directly. Note that backslashes **must** be escaped in YAML double-quoted strings (`\\s` in the file = `\s` in the regex). This escaping is handled automatically when using `chop filter add`.
-
-```yaml
-filters:
-  # Keep only error/warning lines from a custom CLI tool
-  "myctl deploy":
-    keep: ["ERROR", "WARN", "deployed", "^="]
-    drop: ["DEBUG", "^\\s*$"]      # \\s in YAML = \s in the regex
-
-  # Show first and last lines of ansible output
-  "ansible-playbook":
-    keep: ["^PLAY", "^TASK", "fatal", "changed", "^\\s+ok="]
-    tail: 20
-
-  # Pipe output through any shell command
-  "custom-tool":
-    exec: "jq ."
-```
-
-#### Guided filter creation
-
-`chop filter new` scaffolds a commented-out filter entry and walks you through the recommended workflow:
-
-```bash
-chop filter new "myctl deploy"
-# scaffolded filter for "myctl deploy" in ~/.config/chop/filters.yml
-#
-# next steps:
-#   1. chop capture myctl deploy   — capture real output as fixture
-#   2. edit filters.yml            — uncomment and tune the rules
-#   3. chop diff myctl deploy      — preview compression before enabling
-#   4. chop filter test myctl deploy — verify against stdin
-```
-
-#### Testing filters
-
-Test a filter against sample input without running the actual command:
-
-```bash
-# Linux/macOS
-echo -e "DEBUG init\nINFO started\nERROR failed" | chop filter test myctl deploy
-
-# Windows (PowerShell)
-"DEBUG init`nINFO started`nERROR failed" | chop filter test myctl deploy
-```
-
+---
 
 ## Shell Completions
 
-Enable tab-completion for chop commands and flags in your shell:
+Enable tab-completion for all chop commands and flags:
 
 ```bash
-# bash — add to ~/.bashrc
-source <(chop completion bash)
-
-# zsh — add to ~/.zshrc
-source <(chop completion zsh)
-
-# fish — add to fish config
-chop completion fish | source
-
-# PowerShell — add to $PROFILE
-chop completion powershell | Invoke-Expression
+source <(chop completion bash)        # bash — add to ~/.bashrc
+source <(chop completion zsh)         # zsh  — add to ~/.zshrc
+chop completion fish | source         # fish
+chop completion powershell | Invoke-Expression  # PowerShell
 ```
+
+→ Setup instructions: [docs/shell-completions.md](docs/shell-completions.md)
+
+---
+
+## Maintenance
+
+```bash
+chop doctor            # check and auto-fix common issues
+chop update            # update to the latest version
+chop auto-update on    # enable background auto-updates
+chop enable / disable  # resume or bypass chop globally
+chop uninstall         # remove everything
+chop reset             # clear tracking data, keep installation
+```
+
+→ Full reference: [docs/maintenance.md](docs/maintenance.md)
+
+---
 
 ## Development
 
