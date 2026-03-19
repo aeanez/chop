@@ -280,22 +280,6 @@ chop init --status       # check if installed
 After this, every command Claude Code runs gets compressed transparently.
 You'll see `chop git status` in the tool calls — that's the hook working.
 
-Add this to your `CLAUDE.md` for best results:
-
-```markdown
-## Chop (Token Optimizer)
-
-`chop` is installed globally. It compresses CLI output to reduce token consumption.
-
-When running CLI commands via Bash, prefix with `chop` for read-only commands:
-- `chop git status`, `chop git log -10`, `chop git diff`
-- `chop docker ps`, `chop npm test`, `chop dotnet build`
-- `chop curl <url>` (auto-compresses JSON responses)
-
-Do NOT use chop for: interactive commands, pipes, redirects, or write commands
-(git commit, git push, npm init, docker run).
-```
-
 ### Gemini CLI
 
 Register a `BeforeTool` hook in `~/.gemini/settings.json` that wraps `run_shell_command`:
