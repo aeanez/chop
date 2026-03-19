@@ -396,7 +396,10 @@ chop gain --history --all               # all recorded commands
 chop gain --since 7d                    # stats for the last 7 days
 chop gain --history --since 7d          # history filtered to last 7 days
 chop gain --history --since 7d --all    # all commands in the last 7 days
+chop gain --history --verbose           # full command strings + project group headers
 chop gain --summary                     # per-command breakdown
+chop gain --projects                    # per-project savings breakdown
+chop gain --history --project <path>    # history for a specific project root
 ```
 
 ```
@@ -458,6 +461,8 @@ chop hook-audit        # show last 20 hook rewrite log entries
 chop hook-audit --clear
 chop config            # show global config file path and contents
 chop config init       # create a starter global config.yml
+chop config export     # export config.yml + filters.yml to stdout
+chop config import <file>  # import a previously exported config
 chop local             # show local project config
 ```
 
@@ -518,6 +523,8 @@ chop reset                    # clear tracking data and audit log, keep installa
 ```bash
 chop config            # show current global config
 chop config init       # create ~/.config/chop/config.yml with examples
+chop config export     # export config.yml + filters.yml to stdout (portable)
+chop config import <file>  # import a config file created by export
 ```
 
 `~/.config/chop/config.yml`:
@@ -565,8 +572,10 @@ Define your own output compression rules for **any** command - no Go code requir
 ```bash
 # Global filters (~/.config/chop/filters.yml)
 chop filter init                         # create starter global filters file
+chop filter new <cmd>                    # scaffold a filter + guided capture→diff→tune workflow
 chop filter add <cmd> [flags]            # add or update a filter
 chop filter remove <cmd>                 # remove a filter
+chop filter test <cmd>                   # test a filter against stdin
 chop filter                              # list all active filters
 chop filter path                         # show config file location
 
@@ -648,6 +657,21 @@ filters:
     exec: "jq ."
 ```
 
+#### Guided filter creation
+
+`chop filter new` scaffolds a commented-out filter entry and walks you through the recommended workflow:
+
+```bash
+chop filter new "myctl deploy"
+# scaffolded filter for "myctl deploy" in ~/.config/chop/filters.yml
+#
+# next steps:
+#   1. chop capture myctl deploy   — capture real output as fixture
+#   2. edit filters.yml            — uncomment and tune the rules
+#   3. chop diff myctl deploy      — preview compression before enabling
+#   4. chop filter test myctl deploy — verify against stdin
+```
+
 #### Testing filters
 
 Test a filter against sample input without running the actual command:
@@ -660,6 +684,24 @@ echo -e "DEBUG init\nINFO started\nERROR failed" | chop filter test myctl deploy
 "DEBUG init`nINFO started`nERROR failed" | chop filter test myctl deploy
 ```
 
+
+## Shell Completions
+
+Enable tab-completion for chop commands and flags in your shell:
+
+```bash
+# bash — add to ~/.bashrc
+source <(chop completion bash)
+
+# zsh — add to ~/.zshrc
+source <(chop completion zsh)
+
+# fish — add to fish config
+chop completion fish | source
+
+# PowerShell — add to $PROFILE
+chop completion powershell | Invoke-Expression
+```
 
 ## Development
 
