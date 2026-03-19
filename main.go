@@ -301,7 +301,7 @@ func main() {
 		filter := filters.Get(command, args)
 		if filter != nil {
 			filtered, ferr := filter(raw)
-			if ferr != nil {
+			if ferr != nil || len(filtered) > len(raw) {
 				finalOutput = raw
 			} else {
 				finalOutput = filtered
@@ -309,7 +309,7 @@ func main() {
 		} else {
 			// Auto-detect compression for unrecognized commands
 			autoFiltered, aerr := filters.AutoDetect(raw)
-			if aerr != nil || autoFiltered == raw {
+			if aerr != nil || autoFiltered == raw || len(autoFiltered) > len(raw) {
 				finalOutput = raw
 			} else {
 				finalOutput = autoFiltered
