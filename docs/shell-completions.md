@@ -12,9 +12,19 @@ source <(chop completion bash)
 
 Or install permanently (no subprocess on each shell start):
 
+**Linux:**
+
 ```bash
 chop completion bash > ~/.local/share/bash-completion/completions/chop
 ```
+
+**macOS (Homebrew):**
+
+```bash
+chop completion bash > $(brew --prefix)/etc/bash_completion.d/chop
+```
+
+> macOS ships with bash 3.2 which doesn't support `source <(...)`. Install a newer bash via Homebrew (`brew install bash`) and use the permanent install method above, or switch to zsh.
 
 ## zsh
 
@@ -24,10 +34,13 @@ Add to `~/.zshrc`:
 source <(chop completion zsh)
 ```
 
-Or install to your completions directory:
+Or install to a user completions directory:
 
 ```zsh
-chop completion zsh > "${fpath[1]}/_chop"
+mkdir -p ~/.zsh/completions
+chop completion zsh > ~/.zsh/completions/_chop
+# ensure this directory is in your fpath (add to ~/.zshrc):
+fpath=(~/.zsh/completions $fpath)
 ```
 
 ## fish
