@@ -547,7 +547,7 @@ func initConfig() {
 	}
 
 	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	if err := os.MkdirAll(dir, 0o700); err != nil {
 		fmt.Fprintf(os.Stderr, "chop: failed to create config dir: %v\n", err)
 		os.Exit(1)
 	}
